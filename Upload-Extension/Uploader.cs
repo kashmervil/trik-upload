@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Renci.SshNet;
 using System.IO;
 using System.Reflection;
-using System.Reactive.Linq;
+using System.Timers;
 
 namespace TRIK.Upload_Extension
 {
@@ -17,19 +17,35 @@ namespace TRIK.Upload_Extension
         private SshClient sshClient = new SshClient("10.0.40.42", "root", "");
         private string folderPath = "";
         private string assembly = "";
-
+        private Timer timer = new Timer(5000.0);
+        
         public Uploader(string path)
         {
             this.folderPath = path;
             scpClient.Connect();
+            scpClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
             sshClient.Connect();
+            sshClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
+            
+            this.timer.Start();
+            this.timer.Elapsed += keepAlive;
             var libconwrap =
             @"C:\Users\Alexander\Documents\GitHub\Trik-Observable\Source\BinaryComponents\libconWrap.so.1.0.0";
             sshClient.RunCommand("mkdir /home/root/trik-sharp; mkdir /home/root/trik-sharp/uploads");
             scpClient.Upload(new FileInfo(libconwrap), getUploadPath(libconwrap));
         }
-        private Func<string, string> getUploadPath = name =>
-            @"/home/root/trik-sharp/uploads/" + name.Substring(name.LastIndexOfAny(new char[] { '\\', '/' }) + 1);
+
+        private void keepAlive(object sender, ElapsedEventArgs e)
+        {
+ 	        scpClient.SendKeepAlive();
+            sshClient.SendKeepAlive();
+
+        }
+
+        private string getUploadPath(string name)
+        {
+            return @"/home/root/trik-sharp/uploads/" + name.Substring(name.LastIndexOfAny(new char[] { '\\', '/' }) + 1);
+        }
 
         private void UpdateScript()
         {

@@ -34,10 +34,10 @@ namespace TRIK.Upload_Extension
     [Guid(GuidList.guidUpload_ExtensionPkgString)]
     public sealed class Upload_ExtensionPackage : Package
     {
+        //private string path = Microsoft.VisualStudio.Settings.ApplicationDataFolder.Documents.ToString();
         private Uploader uploader = new Uploader(
 
     @"C:\Users\Alexander\Documents\Visual Studio 2013\Projects\fsharp-test\fsharp-test\bin\Debug");
-    //@"C:\Users\Alexander\Documents\Visual   Studio 2013\Projects\fsharp-test\fsharp-test\bin\Debug");
          
         /// <summary>
         /// Default constructor of the package.
@@ -118,7 +118,7 @@ namespace TRIK.Upload_Extension
                        0,
                        ref clsid,
                        "Upload-Extension",
-                       string.Format(CultureInfo.CurrentCulture, "Updating...", this.ToString()),
+                       string.Format(CultureInfo.CurrentCulture, "path {0}", 1),
                        string.Empty,
                        0,
                        OLEMSGBUTTON.OLEMSGBUTTON_OK,
