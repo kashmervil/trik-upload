@@ -32,10 +32,7 @@ namespace TRIK.Upload_Extension
             
             this.timer.Start();
             this.timer.Elapsed += keepAlive;
-            var libconwrap =
-            @"C:\Users\Alexander\Documents\GitHub\Trik-Observable\Source\BinaryComponents\libconWrap.so.1.0.0";
             sshClient.RunCommand("mkdir /home/root/trik-sharp; mkdir /home/root/trik-sharp/uploads");
-            scpClient.Upload(new FileInfo(libconwrap), getUploadPath(libconwrap));
         }
 
         private void keepAlive(object sender, ElapsedEventArgs e)
@@ -108,6 +105,9 @@ namespace TRIK.Upload_Extension
                     sshClient.RunCommand("mkdir " + getUploadPath(""));
                     Console.WriteLine("Updating Assembly name to {0}", value);
                     this.UpdateScript();
+                    var libconwrap =
+                    @"C:\Users\Alexander\Documents\GitHub\Trik-Observable\Source\BinaryComponents\libconWrap.so.1.0.0";
+                    scpClient.Upload(new FileInfo(libconwrap), getUploadPath(libconwrap));
                 }
             }
 
