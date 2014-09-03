@@ -7,23 +7,26 @@ using Renci.SshNet;
 using System.IO;
 using System.Reflection;
 using System.Timers;
+using Microsoft.VisualStudio.Shell;
 
 namespace TRIK.Upload_Extension
 {
     public class Uploader
     {
         private Dictionary<string, DateTime> lastUploaded = new Dictionary<string, DateTime>();
-        private ScpClient scpClient = new Renci.SshNet.ScpClient("10.0.40.42", "root", "");
-        private SshClient sshClient = new SshClient("10.0.40.42", "root", "");
-        private string folderPath = "";
-        private string assembly = "";
+        private ScpClient scpClient;
+        private SshClient sshClient;
         private Timer timer = new Timer(5000.0);
+        private string projectPath = "";
+        private string projectName = "";
         
-        public Uploader(string path)
+        public Uploader(string ip)
         {
-            this.folderPath = path;
+            scpClient = new Renci.SshNet.ScpClient(ip, "root", "");
             scpClient.Connect();
             scpClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
+
+            sshClient = new SshClient(ip, "root", "");
             sshClient.Connect();
             sshClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
             
@@ -39,32 +42,38 @@ namespace TRIK.Upload_Extension
         {
  	        scpClient.SendKeepAlive();
             sshClient.SendKeepAlive();
-
         }
 
-        private string getUploadPath(string name)
+        private string getName(string fullName)
         {
-            return @"/home/root/trik-sharp/uploads/" + name.Substring(name.LastIndexOfAny(new char[] { '\\', '/' }) + 1);
+            return fullName.Substring(fullName.LastIndexOfAny(new char[] { '\\', '/' }) + 1);
         }
+
+        private string getUploadPath(string hostPath)
+        {
+            return @"/home/root/trik-sharp/uploads/" + projectName + "/" + getName(hostPath);
+        }
+
+
 
         private void UpdateScript()
         {
-            var fullName = "/home/root/trik-sharp/" + assembly.ToLower();
-            var helper =
+            var fullName = "/home/root/trik-sharp/" + projectName;
+            var script =
                    "echo \"#!/bin/sh\n"
-                + "killall trikGui\n"
-                + "mono " + getUploadPath(assembly) + ".exe\n"
+                + "#killall trikGui\n"
+                + "mono " + getUploadPath(projectName) + ".exe $@ \n"
                 + "cd ~/trik/\n"
-                + "./trikGui -qws &> /dev/null &"
+                + "#./trikGui -qws &> /dev/null &"
                 + "#some other commands\""
                 + " > " + fullName
                 + "; chmod +x " + fullName;
-            sshClient.RunCommand(helper);
+            sshClient.RunCommand(script);
         }
 
         public void Update() 
         {
-        var newFiles = Directory.GetFiles(folderPath);
+        var newFiles = Directory.GetFiles(this.ProjectPath);
         foreach (var file in newFiles)
             {
                 if (!this.lastUploaded.ContainsKey(file))
@@ -77,18 +86,29 @@ namespace TRIK.Upload_Extension
                     lastUploaded[file] = info.LastWriteTime;
                     Console.WriteLine("uploading {0}", file);
                     scpClient.Upload(info, getUploadPath(file));
+
                 }
 
             }
         }
-        public string Assembly
+        
+        public string ProjectPath
         {
-            get {return assembly;}
+            get {return projectPath;}
             set
             {
-                assembly = value;//System.Reflection.AssemblyName(value).ToString();
-                Console.WriteLine("Updating Assembly name to {0}", value);
-                this.UpdateScript();
+                var newProjectName = getName(value.TrimSuffix(".fsproj"));
+                var newProjectPath = (value.TrimSuffix(newProjectName + ".fsproj") + @"bin\Release\");
+
+                if (projectPath != newProjectPath)
+                {
+                    projectPath = newProjectPath;
+                    projectName = newProjectName;
+                    lastUploaded.Clear();
+                    sshClient.RunCommand("mkdir " + getUploadPath(""));
+                    Console.WriteLine("Updating Assembly name to {0}", value);
+                    this.UpdateScript();
+                }
             }
 
         }

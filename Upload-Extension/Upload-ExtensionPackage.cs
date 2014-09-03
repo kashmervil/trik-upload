@@ -8,6 +8,9 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
+using EnvDTE;
+using EnvDTE80;
+using System.Linq;
 
 namespace TRIK.Upload_Extension
 {
@@ -34,11 +37,7 @@ namespace TRIK.Upload_Extension
     [Guid(GuidList.guidUpload_ExtensionPkgString)]
     public sealed class Upload_ExtensionPackage : Package
     {
-        //private string path = Microsoft.VisualStudio.Settings.ApplicationDataFolder.Documents.ToString();
-        private Uploader uploader = new Uploader(
-
-    @"C:\Users\Alexander\Documents\Visual Studio 2013\Projects\fsharp-test\fsharp-test\bin\Debug");
-         
+        private Uploader uploader;
         /// <summary>
         /// Default constructor of the package.
         /// Inside this method you can place any initialization code that does not require 
@@ -81,11 +80,14 @@ namespace TRIK.Upload_Extension
         /// </summary>
         protected override void Initialize()
         {
+            uploader = new Uploader("10.0.40.42");
+
+            DTE2 dte = (DTE2)GetService(typeof(DTE));
+            //uploader.ProjectPath = (dte.ActiveSolutionProjects as Projects).Item(0).FullName;
+        
             Debug.WriteLine (string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", this.ToString()));
             base.Initialize();
-            uploader.Assembly = "fsharp_test";
-
-
+            
             // Add our command handlers for menu (commands must exist in the .vsct file)
             OleMenuCommandService mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
             if ( null != mcs )
@@ -113,12 +115,25 @@ namespace TRIK.Upload_Extension
             IVsUIShell uiShell = (IVsUIShell)GetService(typeof(SVsUIShell));
             Guid clsid = Guid.Empty;
             int result;
-            uploader.Update();
+            DTE2 dte = (DTE2)GetService(typeof(DTE));
+            var projects = dte.Solution.Projects;
+            string allNames = "";
+            var en = projects.GetEnumerator();
+            en.MoveNext();
+
+            var project = en.Current as Project;
+            allNames += project.FullName + " \n";
+            if (project.Saved)
+            {
+                uploader.ProjectPath = project.FullName;
+                uploader.Update();
+            }
+
             Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(uiShell.ShowMessageBox(
                        0,
                        ref clsid,
                        "Upload-Extension",
-                       string.Format(CultureInfo.CurrentCulture, "path {0}", 1),
+                       string.Format(CultureInfo.CurrentCulture, "names {0}", allNames),
                        string.Empty,
                        0,
                        OLEMSGBUTTON.OLEMSGBUTTON_OK,
