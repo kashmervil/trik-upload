@@ -38,6 +38,8 @@ namespace TRIK.Upload_Extension
     public sealed class Upload_ExtensionPackage : Package
     {
         private Uploader uploader;
+        private Window1 connectionWindow;
+        private string ip = "";
         /// <summary>
         /// Default constructor of the package.
         /// Inside this method you can place any initialization code that does not require 
@@ -80,8 +82,6 @@ namespace TRIK.Upload_Extension
         /// </summary>
         protected override void Initialize()
         {
-            uploader = new Uploader("10.0.40.42");
-
             DTE2 dte = (DTE2)GetService(typeof(DTE));
             //uploader.ProjectPath = (dte.ActiveSolutionProjects as Projects).Item(0).FullName;
         
@@ -111,36 +111,73 @@ namespace TRIK.Upload_Extension
         /// </summary>
         private void MenuItemCallback(object sender, EventArgs e)
         {
-            // Show a Message Box to prove we were here
-            IVsUIShell uiShell = (IVsUIShell)GetService(typeof(SVsUIShell));
-            Guid clsid = Guid.Empty;
-            int result;
-            DTE2 dte = (DTE2)GetService(typeof(DTE));
-            var projects = dte.Solution.Projects;
-            string allNames = "";
-            var en = projects.GetEnumerator();
-            en.MoveNext();
-
-            var project = en.Current as Project;
-            allNames += project.FullName + " \n";
-            if (project.Saved)
+            //if (null == uploader)
             {
-                uploader.ProjectPath = project.FullName;
-                uploader.Update();
+                connectionWindow = new Window1();
+                connectionWindow.IpAddress.Text = ip;
+                connectionWindow.Show();
+
+                connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
+                connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
             }
 
-            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(uiShell.ShowMessageBox(
-                       0,
-                       ref clsid,
-                       "Upload-Extension",
-                       string.Format(CultureInfo.CurrentCulture, "names {0}", allNames),
-                       string.Empty,
-                       0,
-                       OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                       OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST,
-                       OLEMSGICON.OLEMSGICON_INFO,
-                       0,        // false
-                       out result));
+        }
+
+        void UploadToTrik_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (uploader != null)
+            {
+                connectionWindow.MessageLabel.Content = "Uploading...";
+                System.Threading.Thread.Sleep(1000);
+                IVsUIShell uiShell = (IVsUIShell)GetService(typeof(SVsUIShell));
+                Guid clsid = Guid.Empty;
+                int result;
+                DTE2 dte = (DTE2)GetService(typeof(DTE));
+                var projects = dte.Solution.Projects;
+                string allNames = "";
+                var en = projects.GetEnumerator();
+                en.MoveNext();
+
+                var project = en.Current as Project;
+                allNames += project.FullName + " \n";
+                if (project.Saved)
+                {
+                    uploader.ProjectPath = project.FullName;
+                    uploader.Update();
+                }
+
+                connectionWindow.MessageLabel.Content = "Uploaded!";
+
+                /*Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(uiShell.ShowMessageBox(
+                           0,
+                           ref clsid,
+                           "Upload-Extension",
+                           string.Format(CultureInfo.CurrentCulture, "Uploaded!!!"),
+                           string.Empty,
+                           0,
+                           OLEMSGBUTTON.OLEMSGBUTTON_OK,
+                           OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST,
+                           OLEMSGICON.OLEMSGICON_INFO,
+                           0,        // false
+                           out result));  */
+            }
+        }
+
+        void ConnectToTrik_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (ip != connectionWindow.IpAddress.Text)
+            try
+            {
+                connectionWindow.MessageLabel.Content = "Connecting...";
+                System.Threading.Thread.Sleep(1000);
+                ip = connectionWindow.IpAddress.Text;
+                uploader = new Uploader(ip);
+                connectionWindow.MessageLabel.Content = "Connected!";
+            }
+            catch (Exception exeption)
+            {
+                connectionWindow.MessageLabel.Content = exeption.Message;
+            }
         }
 
     }

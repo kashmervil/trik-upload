@@ -94,10 +94,17 @@
  
   </Commands>
 
-
-
-
-
+  <VisibilityConstraints>
+    <VisibilityItem guid="guidUpload_ExtensionCmdSet" id="uploadToTRIK"
+      context="UICONTEXT_NoSolution"/>
+    <VisibilityItem guid="guidUpload_ExtensionCmdSet" id="uploadTRIKWindow"
+      context="UICONTEXT_NoSolution"/>
+  </VisibilityConstraints>
+  
+  <KeyBindings>
+    <KeyBinding guid="guidUpload_ExtensionCmdSet" id="uploadToTRIK" editor="guidVSStd97" key1="B" mod1="ALT SHIFT CONTROL" />
+  </KeyBindings>
+  
   <Symbols>
     <!-- This is the package guid. -->
     <GuidSymbol name="guidUpload_ExtensionPkg" value="{cc3f99c8-ffac-4cf9-8b9d-71a68baf8fbe}" />
