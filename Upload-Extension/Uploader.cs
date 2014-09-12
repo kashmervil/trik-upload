@@ -2,14 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Renci.SshNet;
 using System.IO;
-using System.Reflection;
 using System.Timers;
 using Microsoft.VisualStudio.Shell;
 
-namespace TRIK.Upload_Extension
+namespace Trik.Upload_Extension
 {
     public class Uploader
     {
@@ -31,11 +29,11 @@ namespace TRIK.Upload_Extension
             sshClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
             
             timer.Start();
-            timer.Elapsed += keepAlive;
+            timer.Elapsed += KeepAlive;
             sshClient.RunCommand("mkdir /home/root/trik-sharp; mkdir /home/root/trik-sharp/uploads");
         }
 
-        private void keepAlive(object sender, ElapsedEventArgs e)
+        private void KeepAlive(object sender, ElapsedEventArgs e)
         {
  	        scpClient.SendKeepAlive();
             sshClient.SendKeepAlive();
@@ -46,7 +44,7 @@ namespace TRIK.Upload_Extension
             return fullName.Substring(fullName.LastIndexOfAny(new char[] { '\\', '/' }) + 1);
         }
 
-        private string getUploadPath(string hostPath)
+        private string GetUploadPath(string hostPath)
         {
             return @"/home/root/trik-sharp/uploads/" + projectName + "/" + getName(hostPath);
         }
@@ -63,7 +61,7 @@ namespace TRIK.Upload_Extension
             var script =
                    "echo \"#!/bin/sh\n"
                 + "#killall trikGui\n"
-                + "mono " + getUploadPath(pe.First()) + " $* \n"
+                + "mono " + GetUploadPath(pe.First()) + " $* \n"
                 + "cd ~/trik/\n"
                 + "#./trikGui -qws &> /dev/null &"
                 + "#some other commands\""
@@ -87,13 +85,9 @@ namespace TRIK.Upload_Extension
                         lastUploaded.Add(file, DateTime.MinValue);
                 }
                 var info = new FileInfo(file);
-                if (info.LastWriteTime > lastUploaded[file])
-                {
-                    lastUploaded[file] = info.LastWriteTime;
-                    scpClient.Upload(info, getUploadPath(file));
-
-                }
-
+                if (info.LastWriteTime <= lastUploaded[file]) continue;
+                lastUploaded[file] = info.LastWriteTime;
+                scpClient.Upload(info, GetUploadPath(file));
             }
         }
         
@@ -105,17 +99,14 @@ namespace TRIK.Upload_Extension
                 var newProjectName = getName(value.TrimSuffix(".fsproj"));
                 var newProjectPath = (value.TrimSuffix(newProjectName + ".fsproj") + @"bin\Release\");
 
-                if (projectPath != newProjectPath)
-                {
-                    projectPath = newProjectPath;
-                    projectName = newProjectName;
-                    lastUploaded.Clear();
-                    sshClient.RunCommand("mkdir " + getUploadPath(""));
-                    UpdateScript();
-                    var libconwrap =
-                    @"C:\Users\Alexander\Documents\GitHub\Trik-Observable\Source\BinaryComponents\libconWrap.so.1.0.0";
-                    scpClient.Upload(new FileInfo(libconwrap), getUploadPath(libconwrap));
-                }
+                if (projectPath == newProjectPath) return;
+                projectPath = newProjectPath;
+                projectName = newProjectName;
+                lastUploaded.Clear();
+                sshClient.RunCommand("mkdir " + GetUploadPath(""));
+                UpdateScript();
+                const string libconwrap = @"C:\Users\Alexander\Documents\GitHub\Trik-Observable\Source\BinaryComponents\libconWrap.so.1.0.0";
+                scpClient.Upload(new FileInfo(libconwrap), GetUploadPath(libconwrap));
             }
 
         }

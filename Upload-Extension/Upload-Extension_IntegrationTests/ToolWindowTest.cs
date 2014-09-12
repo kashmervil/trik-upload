@@ -42,12 +42,12 @@ namespace Upload_Extension_IntegrationTests
         {
             UIThreadInvoker.Invoke((ThreadInvoker)delegate()
             {
-                CommandID toolWindowCmd = new CommandID(TRIK.Upload_Extension.GuidList.guidUpload_ExtensionCmdSet, (int)TRIK.Upload_Extension.PkgCmdIDList.uploadTRIKWindow);
+                CommandID toolWindowCmd = new CommandID(Trik.Upload_Extension.GuidList.guidUpload_ExtensionCmdSet, (int)Trik.Upload_Extension.PkgCmdIDList.uploadTRIKWindow);
 
                 TestUtils testUtils = new TestUtils();
                 testUtils.ExecuteCommand(toolWindowCmd);
 
-                Assert.IsTrue(testUtils.CanFindToolwindow(new Guid(TRIK.Upload_Extension.GuidList.guidToolWindowPersistanceString)));
+                Assert.IsTrue(testUtils.CanFindToolwindow(new Guid(Trik.Upload_Extension.GuidList.guidToolWindowPersistanceString)));
 
             });
         }

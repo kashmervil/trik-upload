@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
+using System.Windows;
 using Microsoft.Win32;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -12,7 +13,7 @@ using EnvDTE;
 using EnvDTE80;
 using System.Linq;
 
-namespace TRIK.Upload_Extension
+namespace Trik.Upload_Extension
 {
     /// <summary>
     /// This is the class that implements the package exposed by this assembly.
@@ -35,7 +36,7 @@ namespace TRIK.Upload_Extension
     // This attribute registers a tool window exposed by this package.
     [ProvideToolWindow(typeof(MyToolWindow))]
     [Guid(GuidList.guidUpload_ExtensionPkgString)]
-    public sealed class Upload_ExtensionPackage : Package
+    public sealed class UploadExtensionPackage : Package
     {
         private Uploader uploader;
         private Window1 connectionWindow;
@@ -47,9 +48,9 @@ namespace TRIK.Upload_Extension
         /// not sited yet inside Visual Studio environment. The place to do all the other 
         /// initialization is the Initialize method.
         /// </summary>
-        public Upload_ExtensionPackage()
+        public UploadExtensionPackage()
         {
-            Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Entering constructor for: {0}", this.ToString()));
+            Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Entering constructor for: {0}", ToString()));
         }
 
         /// <summary>
@@ -62,13 +63,13 @@ namespace TRIK.Upload_Extension
             // Get the instance number 0 of this tool window. This window is single instance so this instance
             // is actually the only one.
             // The last flag is set to true so that if the tool window does not exists it will be created.
-            ToolWindowPane window = this.FindToolWindow(typeof(MyToolWindow), 0, true);
+            var window = FindToolWindow(typeof(MyToolWindow), 0, true);
             if ((null == window) || (null == window.Frame))
             {
                 throw new NotSupportedException(Resources.CanNotCreateWindow);
             }
-            IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
-            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
+            var windowFrame = (IVsWindowFrame)window.Frame;
+            ErrorHandler.ThrowOnFailure(windowFrame.Show());
         }
 
 
@@ -82,23 +83,23 @@ namespace TRIK.Upload_Extension
         /// </summary>
         protected override void Initialize()
         {
-            DTE2 dte = (DTE2)GetService(typeof(DTE));
+            var dte = (DTE2)GetService(typeof(DTE));
             //uploader.ProjectPath = (dte.ActiveSolutionProjects as Projects).Item(0).FullName;
         
-            Debug.WriteLine (string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", this.ToString()));
+            Debug.WriteLine (string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", ToString()));
             base.Initialize();
             
             // Add our command handlers for menu (commands must exist in the .vsct file)
-            OleMenuCommandService mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
+            var mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
             if ( null != mcs )
             {
                 // Create the command for the menu item.
-                CommandID menuCommandID = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadToTRIK);
-                MenuCommand menuItem = new MenuCommand(MenuItemCallback, menuCommandID );
+                var menuCommandID = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadToTRIK);
+                var menuItem = new MenuCommand(MenuItemCallback, menuCommandID );
                 mcs.AddCommand( menuItem );
                 // Create the command for the tool window
-                CommandID toolwndCommandID = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadTRIKWindow);
-                MenuCommand menuToolWin = new MenuCommand(ShowToolWindow, toolwndCommandID);
+                var toolwndCommandID = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadTRIKWindow);
+                var menuToolWin = new MenuCommand(ShowToolWindow, toolwndCommandID);
                 mcs.AddCommand( menuToolWin );
             }
         }
@@ -115,7 +116,7 @@ namespace TRIK.Upload_Extension
             {
                 connectionWindow = new Window1();
                 connectionWindow.IpAddress.Text = ip;
-                connectionWindow.Show();
+                connectionWindow.ShowModal();
 
                 connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
                 connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
@@ -123,62 +124,41 @@ namespace TRIK.Upload_Extension
 
         }
 
-        void UploadToTrik_Click(object sender, System.Windows.RoutedEventArgs e)
+        void UploadToTrik_Click(object sender, RoutedEventArgs e)
         {
-            if (uploader != null)
+            if (uploader == null) return;
+            connectionWindow.MessageLabel.Content = "Uploading...";
+            var uiShell = (IVsUIShell)GetService(typeof(SVsUIShell));
+            var clsid = Guid.Empty;
+            int result;
+            var dte = (DTE2)GetService(typeof(DTE));
+            var projects = dte.Solution.Projects;
+            var en = projects.GetEnumerator();
+            en.MoveNext();
+
+            var project = en.Current as Project;
+            if (project != null)
             {
-                connectionWindow.MessageLabel.Content = "Uploading...";
-                System.Threading.Thread.Sleep(1000);
-                IVsUIShell uiShell = (IVsUIShell)GetService(typeof(SVsUIShell));
-                Guid clsid = Guid.Empty;
-                int result;
-                DTE2 dte = (DTE2)GetService(typeof(DTE));
-                var projects = dte.Solution.Projects;
-                string allNames = "";
-                var en = projects.GetEnumerator();
-                en.MoveNext();
-
-                var project = en.Current as Project;
-                allNames += project.FullName + " \n";
-                if (project.Saved)
-                {
-                    uploader.ProjectPath = project.FullName;
-                    uploader.Update();
-                }
-
-                connectionWindow.MessageLabel.Content = "Uploaded!";
-
-                /*Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(uiShell.ShowMessageBox(
-                           0,
-                           ref clsid,
-                           "Upload-Extension",
-                           string.Format(CultureInfo.CurrentCulture, "Uploaded!!!"),
-                           string.Empty,
-                           0,
-                           OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                           OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST,
-                           OLEMSGICON.OLEMSGICON_INFO,
-                           0,        // false
-                           out result));  */
+                if (!project.Saved) return;
+                uploader.ProjectPath = project.FullName;
             }
+            uploader.Update();
         }
 
-        void ConnectToTrik_Click(object sender, System.Windows.RoutedEventArgs e)
+        void ConnectToTrik_Click(object sender, RoutedEventArgs e)
         {
-            if (ip != connectionWindow.IpAddress.Text)
+            if (ip == connectionWindow.IpAddress.Text) return;
             try
             {
                 connectionWindow.MessageLabel.Content = "Connecting...";
-                System.Threading.Thread.Sleep(1000);
                 ip = connectionWindow.IpAddress.Text;
                 uploader = new Uploader(ip);
-                connectionWindow.MessageLabel.Content = "Connected!";
+                //connectionWindow.MessageLabel.Content = "Connected!";
             }
             catch (Exception exeption)
             {
                 connectionWindow.MessageLabel.Content = exeption.Message;
             }
         }
-
     }
 }

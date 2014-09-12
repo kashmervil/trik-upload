@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell;
 
-namespace TRIK.Upload_Extension
+namespace Trik.Upload_Extension
 {
     /// <summary>
     /// This class implements the tool window exposed by this package and hosts a user control.

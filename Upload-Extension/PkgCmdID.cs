@@ -2,7 +2,7 @@
 // MUST match PkgCmdID.h
 using System;
 
-namespace TRIK.Upload_Extension
+namespace Trik.Upload_Extension
 {
     static class PkgCmdIDList
     {

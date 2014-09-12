@@ -16,7 +16,7 @@ using System.Reflection;
 using Microsoft.VsSDK.UnitTestLibrary;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using TRIK.Upload_Extension;
+using Trik.Upload_Extension;
 
 namespace Upload_Extension_UnitTests
 {
@@ -26,13 +26,13 @@ namespace Upload_Extension_UnitTests
         [TestMethod()]
         public void CreateInstance()
         {
-            Upload_ExtensionPackage package = new Upload_ExtensionPackage();
+            UploadExtensionPackage package = new UploadExtensionPackage();
         }
 
         [TestMethod()]
         public void IsIVsPackage()
         {
-            Upload_ExtensionPackage package = new Upload_ExtensionPackage();
+            UploadExtensionPackage package = new UploadExtensionPackage();
             Assert.IsNotNull(package as IVsPackage, "The object does not implement IVsPackage");
         }
 
@@ -40,7 +40,7 @@ namespace Upload_Extension_UnitTests
         public void SetSite()
         {
             // Create the package
-            IVsPackage package = new Upload_ExtensionPackage() as IVsPackage;
+            IVsPackage package = new UploadExtensionPackage() as IVsPackage;
             Assert.IsNotNull(package, "The object does not implement IVsPackage");
 
             // Create a basic service provider

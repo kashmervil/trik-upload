@@ -12,7 +12,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace TRIK.Upload_Extension
+namespace Trik.Upload_Extension
 {
     /// <summary>
     /// Interaction logic for MyControl.xaml

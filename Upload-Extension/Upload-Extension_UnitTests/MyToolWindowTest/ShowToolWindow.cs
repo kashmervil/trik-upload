@@ -17,7 +17,7 @@ using Microsoft.VsSDK.UnitTestLibrary;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.VSSDK.Tools.VsIdeTesting;
-using TRIK.Upload_Extension;
+using Trik.Upload_Extension;
 
 namespace Upload_Extension_UnitTests.MyToolWindowTest
 {
@@ -28,7 +28,7 @@ namespace Upload_Extension_UnitTests.MyToolWindowTest
         [TestMethod()]
         public void ValidateToolWindowShown()
         {
-            IVsPackage package = new Upload_ExtensionPackage() as IVsPackage;
+            IVsPackage package = new UploadExtensionPackage() as IVsPackage;
 
             // Create a basic service provider
             OleServiceProvider serviceProvider = OleServiceProvider.CreateOleServiceProviderWithBasicServices();
@@ -40,7 +40,7 @@ namespace Upload_Extension_UnitTests.MyToolWindowTest
             // Site the package
             Assert.AreEqual(0, package.SetSite(serviceProvider), "SetSite did not return S_OK");
 
-            MethodInfo method = typeof(Upload_ExtensionPackage).GetMethod("ShowToolWindow", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo method = typeof(UploadExtensionPackage).GetMethod("ShowToolWindow", BindingFlags.NonPublic | BindingFlags.Instance);
 
             object result = method.Invoke(package, new object[] { null, null });
         }
@@ -49,7 +49,7 @@ namespace Upload_Extension_UnitTests.MyToolWindowTest
         [ExpectedException(typeof(InvalidOperationException), "Did not throw expected exception when windowframe object was null")]
         public void ShowToolwindowNegativeTest()
         {
-            IVsPackage package = new Upload_ExtensionPackage() as IVsPackage;
+            IVsPackage package = new UploadExtensionPackage() as IVsPackage;
 
             // Create a basic service provider
             OleServiceProvider serviceProvider = OleServiceProvider.CreateOleServiceProviderWithBasicServices();
@@ -61,7 +61,7 @@ namespace Upload_Extension_UnitTests.MyToolWindowTest
             // Site the package
             Assert.AreEqual(0, package.SetSite(serviceProvider), "SetSite did not return S_OK");
 
-            MethodInfo method = typeof(Upload_ExtensionPackage).GetMethod("ShowToolWindow", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo method = typeof(UploadExtensionPackage).GetMethod("ShowToolWindow", BindingFlags.NonPublic | BindingFlags.Instance);
 
             //Invoke thows TargetInvocationException, but we want it's inner Exception thrown by ShowToolWindow, InvalidOperationException.
             try

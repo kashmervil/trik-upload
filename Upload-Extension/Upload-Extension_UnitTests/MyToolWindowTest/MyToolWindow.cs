@@ -17,7 +17,7 @@ using Microsoft.VsSDK.UnitTestLibrary;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.VSSDK.Tools.VsIdeTesting;
-using TRIK.Upload_Extension;
+using Trik.Upload_Extension;
 
 namespace Upload_Extension_UnitTests.MyToolWindowTest
 {

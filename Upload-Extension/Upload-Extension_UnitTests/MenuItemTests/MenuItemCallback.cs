@@ -18,7 +18,7 @@ using Microsoft.VsSDK.UnitTestLibrary;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.VisualStudio.Shell;
-using TRIK.Upload_Extension;
+using Trik.Upload_Extension;
 
 namespace Upload_Extension_UnitTests.MenuItemTests
 {
@@ -33,7 +33,7 @@ namespace Upload_Extension_UnitTests.MenuItemTests
         public void InitializeMenuCommand()
         {
             // Create the package
-            IVsPackage package = new Upload_ExtensionPackage() as IVsPackage;
+            IVsPackage package = new UploadExtensionPackage() as IVsPackage;
             Assert.IsNotNull(package, "The object does not implement IVsPackage");
 
             // Create a basic service provider
@@ -43,7 +43,7 @@ namespace Upload_Extension_UnitTests.MenuItemTests
             Assert.AreEqual(0, package.SetSite(serviceProvider), "SetSite did not return S_OK");
 
             //Verify that the menu command can be found
-            CommandID menuCommandID = new CommandID(TRIK.Upload_Extension.GuidList.guidUpload_ExtensionCmdSet, (int)TRIK.Upload_Extension.PkgCmdIDList.uploadToTRIK);
+            CommandID menuCommandID = new CommandID(Trik.Upload_Extension.GuidList.guidUpload_ExtensionCmdSet, (int)Trik.Upload_Extension.PkgCmdIDList.uploadToTRIK);
             System.Reflection.MethodInfo info = typeof(Package).GetMethod("GetService", BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.IsNotNull(info);
             OleMenuCommandService mcs = info.Invoke(package, new object[] { (typeof(IMenuCommandService)) }) as OleMenuCommandService;
@@ -54,7 +54,7 @@ namespace Upload_Extension_UnitTests.MenuItemTests
         public void MenuItemCallback()
         {
             // Create the package
-            IVsPackage package = new Upload_ExtensionPackage() as IVsPackage;
+            IVsPackage package = new UploadExtensionPackage() as IVsPackage;
             Assert.IsNotNull(package, "The object does not implement IVsPackage");
 
             // Create a basic service provider

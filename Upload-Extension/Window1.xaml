@@ -1,12 +1,17 @@
-﻿<Window x:Class="TRIK.Upload_Extension.Window1"
+﻿<ui:DialogWindow x:Class="Trik.Upload_Extension.Window1"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Trik Upload" Height="300" Width="300">
+        xmlns:ui="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.12.0"
+        Title="TRIK Upload" Height="300" Width="300">
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="175*"/>
+            <ColumnDefinition Width="117*"/>
+        </Grid.ColumnDefinitions>
         <TextBox x:Name="IpAddress" HorizontalAlignment="Left" x:FieldModifier="public" Height="37" Margin="10,169,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="140" Text="192.168.1.1" FontSize="18" FontWeight="Bold"/>
-        <Button x:Name="ConnectToTrik" Content="Connect" x:FieldModifier="public" HorizontalAlignment="Left" VerticalAlignment="Top" Width="85" Margin="186,168,0,0" Height="38" FontSize="20"/>
-        <Label x:Name="MessageLabel" Content="" x:FieldModifier="public" HorizontalAlignment="Left" Margin="10,206,0,0" VerticalAlignment="Top" Width="261" Height="50" Cursor="None" FontSize="14"/>
-        <Button x:Name="UploadToTrik" Content="Upload" x:FieldModifier="public" HorizontalAlignment="Left" Height="69" Margin="10,38,0,0" VerticalAlignment="Top" Width="261" FontSize="40"/>
+        <Button x:Name="ConnectToTrik" Content="Connect" x:FieldModifier="public" HorizontalAlignment="Left" VerticalAlignment="Top" Width="85" Margin="10.819,168,0,0" Height="38" FontSize="20" Grid.Column="1"/>
+        <Label x:Name="MessageLabel" Content="" x:FieldModifier="public" HorizontalAlignment="Left" Margin="10,206,0,0" VerticalAlignment="Top" Width="261" Height="50" Cursor="None" FontSize="14" Grid.ColumnSpan="2"/>
+        <Button x:Name="UploadToTrik" Content="Upload" x:FieldModifier="public" HorizontalAlignment="Left" Height="69" Margin="10,38,0,0" VerticalAlignment="Top" Width="261" FontSize="40" Grid.ColumnSpan="2"/>
 
     </Grid>
-</Window>
+</ui:DialogWindow>
