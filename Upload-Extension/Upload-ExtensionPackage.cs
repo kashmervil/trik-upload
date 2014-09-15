@@ -40,7 +40,7 @@ namespace Trik.Upload_Extension
     {
         private Uploader uploader;
         private Window1 connectionWindow;
-        private string ip = "";
+        private string ip = "192.168.1.1";
         /// <summary>
         /// Default constructor of the package.
         /// Inside this method you can place any initialization code that does not require 
@@ -114,12 +114,10 @@ namespace Trik.Upload_Extension
         {
             //if (null == uploader)
             {
-                connectionWindow = new Window1();
-                connectionWindow.IpAddress.Text = ip;
-                connectionWindow.ShowModal();
-
+                connectionWindow = new Window1 {IpAddress = {Text = ip}};
                 connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
                 connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
+                connectionWindow.ShowModal();
             }
 
         }
@@ -143,6 +141,8 @@ namespace Trik.Upload_Extension
                 uploader.ProjectPath = project.FullName;
             }
             uploader.Update();
+            connectionWindow.MessageLabel.Content = "Uploaded!";
+            connectionWindow.Close();
         }
 
         void ConnectToTrik_Click(object sender, RoutedEventArgs e)
@@ -153,7 +153,7 @@ namespace Trik.Upload_Extension
                 connectionWindow.MessageLabel.Content = "Connecting...";
                 ip = connectionWindow.IpAddress.Text;
                 uploader = new Uploader(ip);
-                //connectionWindow.MessageLabel.Content = "Connected!";
+                connectionWindow.MessageLabel.Content = "Connected!";
             }
             catch (Exception exeption)
             {
