@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="cc3f99c8-ffac-4cf9-8b9d-71a68baf8fbe" Version="0.1.1" Language="en-US" Publisher="TRIK" />
+    <Identity Id="cc3f99c8-ffac-4cf9-8b9d-71a68baf8fbe" Version="0.1.2" Language="en-US" Publisher="TRIK" />
     <DisplayName>TRIK-Upload</DisplayName>
     <Description>Visual Studio extension for Automatic file uploading to TRIK-Controller</Description>
     <MoreInfo >https://github.com/kashmervil/trik-sharp https://github.com/kashmervil/Upload-Extension http://blog.trikset.com/</MoreInfo>

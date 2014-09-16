@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
+using System.Security.Policy;
+using System.Threading;
 using System.Windows;
+using System.Windows.Documents;
 using Microsoft.Win32;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -12,6 +17,7 @@ using Microsoft.VisualStudio.Shell;
 using EnvDTE;
 using EnvDTE80;
 using System.Linq;
+using Renci.SshNet.Sftp;
 
 namespace Trik.Upload_Extension
 {
@@ -41,6 +47,7 @@ namespace Trik.Upload_Extension
         private Uploader uploader;
         private Window1 connectionWindow;
         private string ip = "192.168.1.1";
+        private bool firstUpload = true;
         /// <summary>
         /// Default constructor of the package.
         /// Inside this method you can place any initialization code that does not require 
@@ -112,53 +119,99 @@ namespace Trik.Upload_Extension
         /// </summary>
         private void MenuItemCallback(object sender, EventArgs e)
         {
-            //if (null == uploader)
-            {
-                connectionWindow = new Window1 {IpAddress = {Text = ip}};
-                connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
-                connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
-                connectionWindow.ShowModal();
-            }
+            connectionWindow = new Window1 {IpAddress = {Text = ip}};
+            if (null == uploader) connectionWindow.UploadToTrik.IsEnabled = false;
+
+            connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
+            connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
+            connectionWindow.ShowModal();
 
         }
 
         void UploadToTrik_Click(object sender, RoutedEventArgs e)
         {
             if (uploader == null) return;
-            connectionWindow.MessageLabel.Content = "Uploading...";
-            var uiShell = (IVsUIShell)GetService(typeof(SVsUIShell));
-            var clsid = Guid.Empty;
-            int result;
-            var dte = (DTE2)GetService(typeof(DTE));
-            var projects = dte.Solution.Projects;
-            var en = projects.GetEnumerator();
-            en.MoveNext();
 
-            var project = en.Current as Project;
-            if (project != null)
+            connectionWindow.MessageLabel.Content = "Uploading...";
+            connectionWindow.UploadToTrik.IsEnabled = false;
+
+            var scnt = SynchronizationContext.Current;
+            System.Threading.Tasks.Task.Run(() =>
             {
-                if (!project.Saved) return;
-                uploader.ProjectPath = project.FullName;
-            }
-            uploader.Update();
-            connectionWindow.MessageLabel.Content = "Uploaded!";
-            connectionWindow.Close();
+                var dte = (DTE2)GetService(typeof(DTE));
+                var projects = dte.Solution.Projects;
+                var en = projects.GetEnumerator();
+                en.MoveNext();
+
+                var project = en.Current as Project;
+                if (project != null)
+                {
+                    if (!project.Saved)
+                    {
+                        scnt.Post(x => 
+                            connectionWindow.MessageLabel.Content = "Save Project before Uploading", null);
+                        return;
+                    }
+                    uploader.ProjectPath = project.FullName;
+                }
+                try
+                {
+                    uploader.Update();
+                    scnt.Post(x =>
+                    {
+                        connectionWindow.MessageLabel.Content = "Uploaded!";
+                        //connectionWindow.UploadToTrik.IsEnabled = true;
+                        connectionWindow.Close();
+                    }, null);
+                }
+                catch (Exception exception)
+                {
+                    scnt.Post(x =>
+                    {
+                        connectionWindow.MessageLabel.Content = exception.Message;
+                    }, null);
+                }                
+            });
         }
 
         void ConnectToTrik_Click(object sender, RoutedEventArgs e)
         {
-            if (ip == connectionWindow.IpAddress.Text) return;
-            try
+            if (ip == connectionWindow.IpAddress.Text && !firstUpload) return;
+            connectionWindow.ConnectToTrik.IsEnabled = false;
+            connectionWindow.MessageLabel.Content = "Connecting...";
+            ip = connectionWindow.IpAddress.Text;
+            var scnt = SynchronizationContext.Current;
+            connectionWindow.UploadToTrik.IsEnabled = false;
+            System.Threading.Tasks.Task.Run(() =>
             {
-                connectionWindow.MessageLabel.Content = "Connecting...";
-                ip = connectionWindow.IpAddress.Text;
-                uploader = new Uploader(ip);
-                connectionWindow.MessageLabel.Content = "Connected!";
-            }
-            catch (Exception exeption)
-            {
-                connectionWindow.MessageLabel.Content = exeption.Message;
-            }
+                var timeout = new System.Threading.Timer(x => scnt.Post(y =>
+                {
+                    connectionWindow.MessageLabel.Content = "A connection is taking longer than usual";
+                }, null), null, 6000, -1);
+
+                try
+                {
+                    uploader = new Uploader(ip);
+                    scnt.Post(x =>
+                    {
+                        connectionWindow.MessageLabel.Content = "Connected!"; 
+                        connectionWindow.UploadToTrik.IsEnabled = true;
+                        firstUpload = false;
+                    }
+                    , null);
+
+                }
+                catch (Exception exeption)
+                {
+                    scnt.Post(x => connectionWindow.MessageLabel.Content = exeption.Message, null);
+                }
+                finally
+                {
+                    scnt.Post(x => connectionWindow.ConnectToTrik.IsEnabled = true , null);
+                    timeout.Dispose();
+
+                }
+            });
         }
     }
 }
