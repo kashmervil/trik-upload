@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using EnvDTE;
 using Renci.SshNet;
 using System.IO;
 using System.Timers;
@@ -107,14 +105,11 @@ namespace Trik.Upload_Extension
                 lastUploaded.Clear();
                 sshClient.RunCommand("mkdir " + GetUploadPath(""));
                 UpdateScript();
-                const string libconwrap = @"D:\libconWrap.so.1.0.0";
-                //var libconwrap = Assembly.GetExecutingAssembly().GetManifestResourceNames().First(n => n.Contains("libconWrap"));
-                try
+                var resources = Path.GetDirectoryName(typeof(Uploader).Assembly.Location);
+                if (resources != null)
                 {
+                    var libconwrap = resources + @"\Resources\libconWrap.so.1.0.0";
                     scpClient.Upload(new FileInfo(libconwrap), GetUploadPath(libconwrap));
-                }
-                catch (Exception e)
-                {
                 }
             }
 

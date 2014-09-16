@@ -45,8 +45,11 @@
         <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS"/>
       </Group>
       
-
-
+      <Group guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup"
+      priority="0x0000">
+        <Parent guid="guidUpload_ExtensionCmdSet" id="Toolbar"/>
+      </Group>
+      
     </Groups>
     
     <!--Buttons section. -->
@@ -62,7 +65,8 @@
           If you do not want an image next to your command, remove the Icon node /> -->
 
       <Button guid="guidUpload_ExtensionCmdSet" id="uploadToTRIK" priority="0x0100" type="Button">
-        <Parent guid="guidUpload_ExtensionCmdSet" id="MyMenuGroup" />
+        <!--Parent guid="guidUpload_ExtensionCmdSet" id="MyMenuGroup" /-->
+        <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
           <ButtonText>Upload to TRIK</ButtonText>
@@ -91,6 +95,17 @@
       <Bitmap guid="guidImages" href="Resources\Images.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows"/>
       
     </Bitmaps>
+
+    <Menus>
+      <Menu guid="guidUpload_ExtensionCmdSet" id="Toolbar"
+          type="Toolbar" >
+        <CommandFlag>DefaultDocked</CommandFlag>
+        <Strings>
+          <ButtonText>Test Toolbar</ButtonText>
+          <CommandName>Test Toolbar</CommandName>
+        </Strings>
+      </Menu>
+    </Menus>
  
   </Commands>
 
@@ -115,6 +130,8 @@
       <IDSymbol name="MyMenuGroup" value="0x1020" />
       <IDSymbol name="uploadToTRIK" value="0x0100" />
       <IDSymbol name="uploadTRIKWindow" value="0x0101" />
+      <IDSymbol name="Toolbar" value="0x1000" />
+      <IDSymbol name="ToolbarGroup" value="0x1050" />
     </GuidSymbol>
     
     
