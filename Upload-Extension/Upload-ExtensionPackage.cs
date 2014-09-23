@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
-using System.Security.Policy;
 using System.Threading;
 using System.Windows;
 using System.Windows.Documents;
@@ -16,8 +13,6 @@ using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 using EnvDTE;
 using EnvDTE80;
-using System.Linq;
-using Renci.SshNet.Sftp;
 
 namespace Trik.Upload_Extension
 {
@@ -91,8 +86,7 @@ namespace Trik.Upload_Extension
         protected override void Initialize()
         {
             var dte = (DTE2)GetService(typeof(DTE));
-            //uploader.ProjectPath = (dte.ActiveSolutionProjects as Projects).Item(0).FullName;
-        
+            
             Debug.WriteLine (string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", ToString()));
             base.Initialize();
             
@@ -124,8 +118,25 @@ namespace Trik.Upload_Extension
 
             connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
             connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
+            connectionWindow.RunProgram.Click += RunProgram_Click;
             connectionWindow.ShowModal();
 
+        }
+
+        private void RunProgram_Click(object sender, RoutedEventArgs e)
+        {
+            var pane = GetService(typeof(SVsGeneralOutputWindowPane)) as IVsOutputWindowPane;
+            if (pane != null) pane.SetName("TRIK-Controller");
+            var scnt = SynchronizationContext.Current;
+            connectionWindow.Close();
+            pane.Activate();
+            pane.OutputString("========== Starting an Application on TRIK ==========\n");
+
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                var programOutput = uploader.RunProgram();
+                scnt.Post(x => pane.OutputStringThreadSafe(programOutput + "\n"), null);
+            });
         }
 
         void UploadToTrik_Click(object sender, RoutedEventArgs e)
@@ -152,7 +163,15 @@ namespace Trik.Upload_Extension
                             connectionWindow.MessageLabel.Content = "Save Project before Uploading", null);
                         return;
                     }
-                    uploader.ProjectPath = project.FullName;
+                    try
+                    {
+                        uploader.ProjectPath = project.FullName;
+                    }
+                    catch (Exception exception)
+                    {
+                        scnt.Post(x =>
+                            connectionWindow.MessageLabel.Content = "Use Release build to turn on all optimizations", null);
+                    }
                 }
                 try
                 {
@@ -184,17 +203,35 @@ namespace Trik.Upload_Extension
             connectionWindow.UploadToTrik.IsEnabled = false;
             System.Threading.Tasks.Task.Run(() =>
             {
-                var timeout = new System.Threading.Timer(x => scnt.Post(y =>
+                const int dueTime = 8000;
+                var timeoutTimer = new Timer(x => scnt.Post(y =>
                 {
                     connectionWindow.MessageLabel.Content = "A connection is taking longer than usual";
-                }, null), null, 6000, -1);
+                }, null), null, dueTime, -1);
+
+                var statusBar = GetService(typeof(SVsStatusbar)) as IVsStatusbar;
+
+                var cookie = (uint)0;
+
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    var messageTail = "";
+                    const int iterations = 20;
+                    for (var i = (uint)0; i < iterations; i++)
+                    {
+                        statusBar.Progress(ref cookie, 1, "Connecting" + messageTail, i, iterations);
+                        messageTail = "." + ((messageTail.Length < 3) ? messageTail : "");
+                        System.Threading.Thread.Sleep(dueTime*3/iterations/2);
+                    }
+                });
 
                 try
                 {
                     uploader = new Uploader(ip);
                     scnt.Post(x =>
                     {
-                        connectionWindow.MessageLabel.Content = "Connected!"; 
+                        connectionWindow.MessageLabel.Content = "Connected!";
+                        statusBar.Progress(ref cookie, 0, "Connected", 0, 0);
                         connectionWindow.UploadToTrik.IsEnabled = true;
                         firstUpload = false;
                     }
@@ -208,7 +245,7 @@ namespace Trik.Upload_Extension
                 finally
                 {
                     scnt.Post(x => connectionWindow.ConnectToTrik.IsEnabled = true , null);
-                    timeout.Dispose();
+                    timeoutTimer.Dispose();
 
                 }
             });

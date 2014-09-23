@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
+using System.Windows.Documents;
 using Renci.SshNet;
 using System.IO;
 using System.Timers;
@@ -67,11 +70,6 @@ namespace Trik.Upload_Extension
                 + "#some other commands\""
                 + " > " + fullName
                 + "; chmod +x " + fullName;
-            var stream = new System.IO.FileStream(projectPath + 
-                                                  pe.First().TrimSuffix(".exe"),
-                                                  FileMode.OpenOrCreate);
-            var bytes = Encoding.UTF8.GetBytes(script);
-            stream.Write(bytes, 0, bytes.Length);
             sshClient.RunCommand(script);
         }
 
@@ -90,7 +88,18 @@ namespace Trik.Upload_Extension
                 scpClient.Upload(info, GetUploadPath(file));
             }
         }
-        
+
+        public string RunProgram()
+        {
+            var program = sshClient.RunCommand(@"sh ~/trik-sharp/" + projectName);
+            var msg = new StringBuilder("========== Run: ");
+            if (program.Error != "")
+                msg.Append("program failed with this Error ==========\n")
+                    .Append(program.Error);
+            else msg.Append("program succeeded with this Output ==========\n").Append(program.Result);
+            return msg.ToString();
+        }
+
         public string ProjectPath
         {
             get {return projectPath;}
@@ -106,11 +115,9 @@ namespace Trik.Upload_Extension
                 sshClient.RunCommand("mkdir " + GetUploadPath(""));
                 UpdateScript();
                 var resources = Path.GetDirectoryName(typeof(Uploader).Assembly.Location);
-                if (resources != null)
-                {
-                    var libconwrap = resources + @"\Resources\libconWrap.so.1.0.0";
-                    scpClient.Upload(new FileInfo(libconwrap), GetUploadPath(libconwrap));
-                }
+                if (resources == null) return;
+                var libconwrap = resources + @"\Resources\libconWrap.so.1.0.0";
+                scpClient.Upload(new FileInfo(libconwrap), GetUploadPath(libconwrap));
             }
 
         }
