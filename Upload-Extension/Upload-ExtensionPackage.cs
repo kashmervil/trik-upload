@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
 using System.Threading;
@@ -41,7 +42,7 @@ namespace Trik.Upload_Extension
     {
         private Uploader uploader;
         private Window1 connectionWindow;
-        private string ip = "192.168.1.1";
+        private string ip = "10.0.40.118";
         private bool firstUpload = true;
         /// <summary>
         /// Default constructor of the package.
@@ -114,7 +115,11 @@ namespace Trik.Upload_Extension
         private void MenuItemCallback(object sender, EventArgs e)
         {
             connectionWindow = new Window1 {IpAddress = {Text = ip}};
-            if (null == uploader) connectionWindow.UploadToTrik.IsEnabled = false;
+            if (null == uploader)
+            {
+                connectionWindow.UploadToTrik.IsEnabled = false;
+                connectionWindow.RunProgram.IsEnabled = false;
+            }
 
             connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
             connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
@@ -143,36 +148,42 @@ namespace Trik.Upload_Extension
         {
             if (uploader == null) return;
 
+            var statusBar = GetService(typeof(SVsStatusbar)) as IVsStatusbar;
+
             connectionWindow.MessageLabel.Content = "Uploading...";
             connectionWindow.UploadToTrik.IsEnabled = false;
+            connectionWindow.RunProgram.IsEnabled = false;
 
             var scnt = SynchronizationContext.Current;
             System.Threading.Tasks.Task.Run(() =>
             {
                 var dte = (DTE2)GetService(typeof(DTE));
                 var projects = dte.Solution.Projects;
-                var en = projects.GetEnumerator();
-                en.MoveNext();
-
-                var project = en.Current as Project;
-                if (project != null)
+                try
                 {
+                    var project = projects.Cast<Project>().First();
+                        //TODO: Working with several projects in one solution
                     if (!project.Saved)
                     {
-                        scnt.Post(x => 
-                            connectionWindow.MessageLabel.Content = "Save Project before Uploading", null);
+                        scnt.Post(x =>
+                        {
+                            statusBar.SetColorText("Save Project before Uploading", 255u, 130u);
+                            connectionWindow.MessageLabel.Content = "Save Project before Uploading";
+                        }
+                            , null);
                         return;
                     }
-                    try
-                    {
-                        uploader.ProjectPath = project.FullName;
-                    }
-                    catch (Exception exception)
-                    {
-                        scnt.Post(x =>
-                            connectionWindow.MessageLabel.Content = "Use Release build to turn on all optimizations", null);
-                    }
+                    uploader.ProjectPath = project.FullName;
                 }
+                catch (Exception exception)
+                {
+                    scnt.Post(x =>
+                    {
+                        connectionWindow.MessageLabel.Content = "Possibly there's no project";
+                        statusBar.SetColorText("Possibly there's no project", 255u, 130u);
+                    }, null);
+                }
+
                 try
                 {
                     uploader.Update();
@@ -195,8 +206,14 @@ namespace Trik.Upload_Extension
 
         void ConnectToTrik_Click(object sender, RoutedEventArgs e)
         {
-            if (ip == connectionWindow.IpAddress.Text && !firstUpload) return;
+            if (ip == connectionWindow.IpAddress.Text && !firstUpload)
+            {
+                connectionWindow.MessageLabel.Content = "Already connected to this host!";
+                return;
+            }
             connectionWindow.ConnectToTrik.IsEnabled = false;
+            connectionWindow.RunProgram.IsEnabled = false;
+
             connectionWindow.MessageLabel.Content = "Connecting...";
             ip = connectionWindow.IpAddress.Text;
             var scnt = SynchronizationContext.Current;

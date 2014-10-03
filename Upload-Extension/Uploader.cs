@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
-using System.Windows.Documents;
 using Renci.SshNet;
 using System.IO;
 using System.Timers;
@@ -12,65 +9,65 @@ using Microsoft.VisualStudio.Shell;
 
 namespace Trik.Upload_Extension
 {
-    public class Uploader
+    public class Uploader : IDisposable
     {
-        Dictionary<string, DateTime> lastUploaded = new Dictionary<string, DateTime>();
-        ScpClient scpClient;
-        SshClient sshClient;
-        Timer timer = new Timer(5000.0);
-        string projectPath = "";
-        string projectName = "";
+        readonly Dictionary<string, DateTime> _lastUploaded = new Dictionary<string, DateTime>();
+        readonly ScpClient _scpClient;
+        readonly SshClient _sshClient;
+        readonly Timer _timer = new Timer(5000.0);
+        string _projectPath = "";
+        string _projectName = "";
         
         public Uploader(string ip)
         {
-            scpClient = new Renci.SshNet.ScpClient(ip, "root", "");
-            scpClient.Connect();
-            scpClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
+            _scpClient = new ScpClient(ip, "root", "");
+            _scpClient.Connect();
+            _scpClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
 
-            sshClient = new SshClient(ip, "root", "");
-            sshClient.Connect();
-            sshClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
+            _sshClient = new SshClient(ip, "root", "");
+            _sshClient.Connect();
+            _sshClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
             
-            timer.Start();
-            timer.Elapsed += KeepAlive;
-            sshClient.RunCommand("mkdir /home/root/trik-sharp; mkdir /home/root/trik-sharp/uploads");
+            _timer.Start();
+            _timer.Elapsed += KeepAlive;
+            _sshClient.RunCommand("mkdir /home/root/trik-sharp; mkdir /home/root/trik-sharp/uploads");
         }
 
         private void KeepAlive(object sender, ElapsedEventArgs e)
         {
- 	        scpClient.SendKeepAlive();
-            sshClient.SendKeepAlive();
+ 	        _scpClient.SendKeepAlive();
+            _sshClient.SendKeepAlive();
         }
 
         private string getName(string fullName)
         {
-            return fullName.Substring(fullName.LastIndexOfAny(new char[] { '\\', '/' }) + 1);
+            return fullName.Substring(fullName.LastIndexOfAny(new[] { '\\', '/' }) + 1);
         }
 
         private string GetUploadPath(string hostPath)
         {
-            return @"/home/root/trik-sharp/uploads/" + projectName + "/" + getName(hostPath);
+            return @"/home/root/trik-sharp/uploads/" + _projectName + "/" + getName(hostPath);
         }
 
 
 
         private void UpdateScript()
         {
-            var fullName = "/home/root/trik-sharp/" + projectName;
-            var pe = from file in Directory.GetFiles(projectPath) 
+            var fullRemoteName = "/home/root/trik-sharp/" + _projectName;
+            var executables = from file in Directory.GetFiles(_projectPath) 
                      where file.EndsWith(".exe") 
                      select getName(file);
 
             var script =
                    "echo \"#!/bin/sh\n"
                 + "#killall trikGui\n"
-                + "mono " + GetUploadPath(pe.First()) + " $* \n"
+                + "mono " + GetUploadPath(executables.First()) + " $* \n"
                 + "cd ~/trik/\n"
                 + "#./trikGui -qws &> /dev/null &"
                 + "#some other commands\""
-                + " > " + fullName
-                + "; chmod +x " + fullName;
-            sshClient.RunCommand(script);
+                + " > " + fullRemoteName
+                + "; chmod +x " + fullRemoteName;
+            _sshClient.RunCommand(script);
         }
 
         public void Update() 
@@ -78,20 +75,20 @@ namespace Trik.Upload_Extension
         var newFiles = Directory.GetFiles(ProjectPath);
         foreach (var file in newFiles)
             {
-                if (!lastUploaded.ContainsKey(file))
+                if (!_lastUploaded.ContainsKey(file))
                 {
-                        lastUploaded.Add(file, DateTime.MinValue);
+                        _lastUploaded.Add(file, DateTime.MinValue);
                 }
                 var info = new FileInfo(file);
-                if (info.LastWriteTime <= lastUploaded[file]) continue;
-                lastUploaded[file] = info.LastWriteTime;
-                scpClient.Upload(info, GetUploadPath(file));
+                if (info.LastWriteTime <= _lastUploaded[file]) continue;
+                _lastUploaded[file] = info.LastWriteTime;
+                _scpClient.Upload(info, GetUploadPath(file));
             }
         }
 
         public string RunProgram()
         {
-            var program = sshClient.RunCommand(@"sh ~/trik-sharp/" + projectName);
+            var program = _sshClient.RunCommand(@"sh ~/trik-sharp/" + _projectName);
             var msg = new StringBuilder("========== Run: ");
             if (program.Error != "")
                 msg.Append("program failed with this Error ==========\n")
@@ -102,24 +99,31 @@ namespace Trik.Upload_Extension
 
         public string ProjectPath
         {
-            get {return projectPath;}
+            get {return _projectPath;}
             set
             {
-                var newProjectName = getName(value.TrimSuffix(".fsproj"));
-                var newProjectPath = (value.TrimSuffix(newProjectName + ".fsproj") + @"bin\Release\");
+                var newProjectName = getName(value.TrimSuffix(".fsproj").TrimSuffix(".csproj"));
+                var newProjectPath = (value.Substring(0, value.LastIndexOfAny(new[] { '\\', '/' }) + 1) + @"bin\Release\");
 
-                if (projectPath == newProjectPath) return;
-                projectPath = newProjectPath;
-                projectName = newProjectName;
-                lastUploaded.Clear();
-                sshClient.RunCommand("mkdir " + GetUploadPath(""));
+                if (_projectPath == newProjectPath) return;
+                _projectPath = newProjectPath;
+                _projectName = newProjectName;
+                _lastUploaded.Clear();
+                _sshClient.RunCommand("mkdir " + GetUploadPath(""));
                 UpdateScript();
                 var resources = Path.GetDirectoryName(typeof(Uploader).Assembly.Location);
                 if (resources == null) return;
                 var libconwrap = resources + @"\Resources\libconWrap.so.1.0.0";
-                scpClient.Upload(new FileInfo(libconwrap), GetUploadPath(libconwrap));
+                _scpClient.Upload(new FileInfo(libconwrap), GetUploadPath(libconwrap));
             }
 
+        }
+
+        public void Dispose()
+        {
+            _sshClient.Dispose();
+            _scpClient.Dispose();
+            _timer.Dispose();
         }
     }
 }
