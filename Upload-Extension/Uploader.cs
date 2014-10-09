@@ -49,6 +49,15 @@ namespace Trik.Upload_Extension
             return @"/home/root/trik-sharp/uploads/" + _projectName + "/" + getName(hostPath);
         }
 
+        public void Reconnect()
+        {
+            _timer.Elapsed -= KeepAlive;
+            _scpClient.Disconnect();
+            _scpClient.Connect();
+            _sshClient.Disconnect();
+            _sshClient.Connect();
+            _timer.Elapsed += KeepAlive;
+        }
 
 
         private void UpdateScript()
