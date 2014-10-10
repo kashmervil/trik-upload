@@ -34,17 +34,21 @@ namespace Trik.Upload_Extension
     // This attribute is needed to let the shell know that this package exposes some menus.
     [ProvideMenuResource("Menus.ctmenu", 1)]
     // This attribute registers a tool window exposed by this package.
-    [ProvideToolWindow(typeof(MyToolWindow))]
+    //[ProvideToolWindow(typeof(MyToolWindow))]
     [Guid(GuidList.guidUpload_ExtensionPkgString)]
     public sealed class UploadExtensionPackage : Package
     {
         private Uploader uploader;
         private Window1 connectionWindow;
-        private string ip = "10.0.40.118";
+#if DEBUG 
+        private string ip = "10.0.40.46";
+#else   
+        private string ip = "192.168.1.1";
+#endif
         private bool firstUpload = true;
 
         //Visual Studio communication constants 
-        private bool isProgressRunning;
+        private bool _isProgressRunning;
         private uint _statusbarCookie;
         private IVsStatusbar _statusbar;
         private IVsOutputWindowPane _pane;
@@ -144,6 +148,7 @@ namespace Trik.Upload_Extension
             connectionWindow.Close();
             
             //WindowPane.Hide();
+            WindowPane.Clear();
             WindowPane.Activate();
             WindowPane.FlushToTaskList();
             WindowPane.OutputString("========== Starting an Application on TRIK ==========\n");
@@ -151,10 +156,19 @@ namespace Trik.Upload_Extension
             System.Threading.Tasks.Task.Run(() =>
             {
                 StopProgress();
-                StatusBar.SetColorText("Running application on TRIK. See output pane for more information", 0, 0);
-                var programOutput = uploader.RunProgram();
-                scnt.Post(x => WindowPane.OutputStringThreadSafe(programOutput + "\n"), null);
-                _isTRIKAplicationRunning = false;
+                StatusBar.SetText("Running application on TRIK. See output pane for more information");
+                try
+                {
+                    var programOutput = uploader.RunProgram();
+                    WindowPane.OutputStringThreadSafe(programOutput + "\n");
+                    _isTRIKAplicationRunning = false;
+                }
+                catch (Exception exception)
+                {
+                    connectionWindow.MessageLabel.Content = "Network error occurred while running an application. Trying to reconnect";
+                    WindowPane.OutputString(exception.Message);
+                    Reconnect();
+                }
             });
         }
 
@@ -181,7 +195,7 @@ namespace Trik.Upload_Extension
                             connectionWindow.MessageLabel.Content = "Save Project before Uploading";
                         }
                             , null);
-                        StatusBar.SetColorText("Save Project before Uploading", 255u, 130u);
+                        StatusBar.SetText("Save Project before Uploading");
                         return;
                     }
                     uploader.ProjectPath = project.FullName;
@@ -192,7 +206,7 @@ namespace Trik.Upload_Extension
                     {
                         connectionWindow.MessageLabel.Content = "Possibly there's no project";
                     }, null);
-                    StatusBar.SetColorText("Possibly there's no project", 255u, 130u);
+                    StatusBar.SetText("Possibly there's no project");
                 }
 
                 ReportProgress(8000, "Uploading");
@@ -207,18 +221,17 @@ namespace Trik.Upload_Extension
                         connectionWindow.Close();
                     }, null);
                     StopProgress();
-                    StatusBar.SetColorText("Uploaded!", 1000000, 3000000);
+                    StatusBar.SetText("Uploaded!");
                 }
-                catch (Exception)
+                catch (Exception exception)
                 {
                     StopProgress();
                     scnt.Post(x =>
                     {
                         connectionWindow.MessageLabel.Content = "Error is occurred. Trying to reconnect...";
                     }, null);
-                    StatusBar.SetColorText("Error is occurred. Trying to reconnect...", 1200000, 1200000);
-                    ReportProgress(8000, "Error is occurred. Trying to reconnect...");
-                    uploader.Reconnect();
+                    //StatusBar.SetText("Error is occurred. Trying to reconnect...");
+                    Reconnect();
                 }                
             });
         }
@@ -228,7 +241,7 @@ namespace Trik.Upload_Extension
             if (ip == connectionWindow.IpAddress.Text && !firstUpload)
             {
                 connectionWindow.MessageLabel.Content = "Already connected to this host!";
-                StatusBar.SetColorText("Already connected to this host!", 1000000000, 3000000000);
+                StatusBar.SetText("Already connected to this host!");
                 return;
             }
             connectionWindow.ConnectToTrik.IsEnabled = false;
@@ -263,52 +276,66 @@ namespace Trik.Upload_Extension
                     }
                     , null);
                     StopProgress();
-                    StatusBar.SetColorText("Connected!", 300000, 2000000000);
+                    StatusBar.SetText("Connected!");
                 }
                 catch (Exception exeption)
                 {
                     StopProgress();
-                    StatusBar.SetColorText("Connection attempt failed. See Output pane for details", 0xFFFF0000, 0xFFF00000);
+                    StatusBar.SetText("Connection attempt failed. See Output pane for details");
                     WindowPane.Clear();
                     WindowPane.Activate();
                     WindowPane.OutputString(exeption.Message);
                     scnt.Post(x => connectionWindow.MessageLabel.Content = "Connection attempt failed", null);
-                    
-
                 }
                 finally
                 {
                     scnt.Post(x => connectionWindow.ConnectToTrik.IsEnabled = true , null);
                     timeoutTimer.Dispose();
-
                 }
             });
         }
 
         private void ReportProgress(int period, String message)
         {
-            isProgressRunning = true;
+            _isProgressRunning = true;
             
             System.Threading.Tasks.Task.Run(() =>
             {
-                StatusBar.SetColorText("", 3200000, 350000000);
+                StatusBar.SetText("");
                 var messageTail = "";
                 const int iterations = 10;
-                while (isProgressRunning)
+                while (_isProgressRunning)
                 {
                     for (var i = (uint) 0; i < iterations; i++)
                     {
-                        StatusBar.Progress(ref _statusbarCookie, isProgressRunning?1:0, message + messageTail, i, iterations);
+                        StatusBar.Progress(ref _statusbarCookie, _isProgressRunning?1:0, message + messageTail, i, iterations);
                         messageTail = "." + ((messageTail.Length < 3) ? messageTail : "");
                         Thread.Sleep(period/iterations);
                     }
                 }
             });
         }
+        private void Reconnect()
+        {
+            try
+            {
+                ReportProgress(8000, "Network error is occurred. Trying to reconnect");
+                uploader.Reconnect();
+                StopProgress();
+                StatusBar.SetText("Connected!");
+            }
+            catch (Exception)
+            {
+                StopProgress();
+                StatusBar.SetText("Can't connect to TRIK. Check connection and try again");
+                uploader = null;
+                firstUpload = true;
+            }
+        }
 
         private void StopProgress()
         {
-            isProgressRunning = false;
+            _isProgressRunning = false;
             StatusBar.Progress(ref _statusbarCookie, 0, "", 0, 0);
         }
 
