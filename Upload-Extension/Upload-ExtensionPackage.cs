@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
@@ -41,7 +42,7 @@ namespace Trik.Upload_Extension
         private Uploader uploader;
         private Window1 connectionWindow;
 #if DEBUG 
-        private string ip = "10.0.40.46";
+        private string ip = "10.0.40.161";
 #else   
         private string ip = "192.168.1.1";
 #endif
@@ -167,7 +168,7 @@ namespace Trik.Upload_Extension
                 {
                     connectionWindow.MessageLabel.Content = "Network error occurred while running an application. Trying to reconnect";
                     WindowPane.OutputString(exception.Message);
-                    Reconnect();
+                    Reconnect(scnt);
                 }
             });
         }
@@ -185,9 +186,10 @@ namespace Trik.Upload_Extension
             {
                 var dte = (DTE2)GetService(typeof(DTE));
                 var projects = dte.Solution.Projects;
+                Project project;
                 try
                 {
-                    var project = projects.Cast<Project>().First();//TODO: Working with several projects in one solution
+                    project = projects.Cast<Project>().First();//TODO: Working with several projects in one solution
                     if (!project.Saved)
                     {
                         scnt.Post(x =>
@@ -198,7 +200,6 @@ namespace Trik.Upload_Extension
                         StatusBar.SetText("Save Project before Uploading");
                         return;
                     }
-                    uploader.ProjectPath = project.FullName;
                 }
                 catch (Exception)
                 {
@@ -207,12 +208,29 @@ namespace Trik.Upload_Extension
                         connectionWindow.MessageLabel.Content = "Possibly there's no project";
                     }, null);
                     StatusBar.SetText("Possibly there's no project");
+                    return;
                 }
 
-                ReportProgress(8000, "Uploading");
-                
-                try
+                var projectPath = project.FullName.Substring(0, project.FullName.LastIndexOfAny(new[] {'\\', '/'}));
+                var projectDirectories = Directory.GetDirectories(projectPath);
+                var projectBin = projectPath + @"\bin";
+
+                if (!projectDirectories.Contains(projectBin) 
+                    || !Directory.GetDirectories(projectBin).Contains(projectBin + @"\Release"))
                 {
+                    scnt.Post(x =>
+                    {
+                        connectionWindow.MessageLabel.Content = "Use Release build for better performance";
+                        connectionWindow.UploadToTrik.IsEnabled = true;
+                    }, null);
+                StatusBar.SetText("Use Release build for better performance");
+                return;
+                }
+
+                try
+                { 
+                    uploader.ProjectPath = project.FullName;
+                    ReportProgress(8000, "Uploading");
                     uploader.Update();
                     scnt.Post(x =>
                     {
@@ -223,7 +241,7 @@ namespace Trik.Upload_Extension
                     StopProgress();
                     StatusBar.SetText("Uploaded!");
                 }
-                catch (Exception exception)
+                catch (Exception)
                 {
                     StopProgress();
                     scnt.Post(x =>
@@ -231,7 +249,8 @@ namespace Trik.Upload_Extension
                         connectionWindow.MessageLabel.Content = "Error is occurred. Trying to reconnect...";
                     }, null);
                     //StatusBar.SetText("Error is occurred. Trying to reconnect...");
-                    Reconnect();
+                    Reconnect(scnt);
+
                 }                
             });
         }
@@ -315,7 +334,7 @@ namespace Trik.Upload_Extension
                 }
             });
         }
-        private void Reconnect()
+        private void Reconnect(SynchronizationContext scnt)
         {
             try
             {
@@ -323,11 +342,25 @@ namespace Trik.Upload_Extension
                 uploader.Reconnect();
                 StopProgress();
                 StatusBar.SetText("Connected!");
+                scnt.Post(x =>
+                {
+                    connectionWindow.MessageLabel.Content = "Connected!";
+                    connectionWindow.UploadToTrik.IsEnabled = true;
+                    firstUpload = false;
+                }
+                    , null);
             }
             catch (Exception)
             {
                 StopProgress();
                 StatusBar.SetText("Can't connect to TRIK. Check connection and try again");
+                scnt.Post(x =>
+                {
+                    connectionWindow.MessageLabel.Content = "Can't connect to TRIK. Check connection and try again";
+                    connectionWindow.UploadToTrik.IsEnabled = true;
+                    firstUpload = false;
+                }
+                    , null);
                 uploader = null;
                 firstUpload = true;
             }
