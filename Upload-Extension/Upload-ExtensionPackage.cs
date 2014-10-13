@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
+using System.Text;
 using System.Threading;
 using System.Windows;
 using Microsoft.VisualStudio;
@@ -54,6 +55,7 @@ namespace Trik.Upload_Extension
         private IVsStatusbar _statusbar;
         private IVsOutputWindowPane _pane;
         private bool _isTRIKAplicationRunning;
+        private bool _isFirstRun = true;
 
         /// <summary>
         /// Default constructor of the package.
@@ -161,9 +163,14 @@ namespace Trik.Upload_Extension
                 try
                 {
                     var programOutput = uploader.RunProgram();
-                    WindowPane.OutputStringThreadSafe(programOutput + "\n");
-                    _isTRIKAplicationRunning = false;
-                }
+                    
+                    if (!_isFirstRun) return;
+                    
+                    programOutput.DataReceived += programOutput_DataReceived;
+                    _isFirstRun = false;
+
+                    //WindowPane.OutputStringThreadSafe(programOutput + "\n");
+                    }
                 catch (Exception exception)
                 {
                     scnt.Post(x =>
@@ -177,7 +184,16 @@ namespace Trik.Upload_Extension
 
                     Reconnect(scnt);
                 }
+                finally
+                {
+                    _isTRIKAplicationRunning = false;
+                }
             });
+        }
+
+        void programOutput_DataReceived(object sender, Renci.SshNet.Common.ShellDataEventArgs e)
+        {
+            WindowPane.OutputStringThreadSafe(Encoding.UTF8.GetString(e.Data));
         }
 
         void UploadToTrik_Click(object sender, RoutedEventArgs e)

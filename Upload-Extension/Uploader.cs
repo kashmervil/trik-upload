@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Renci.SshNet;
 using System.IO;
 using System.Timers;
-using Microsoft.VisualStudio.Shell;
 
 namespace Trik.Upload_Extension
 {
@@ -14,6 +12,8 @@ namespace Trik.Upload_Extension
         readonly Dictionary<string, DateTime> _lastUploaded = new Dictionary<string, DateTime>();
         readonly ScpClient _scpClient;
         readonly SshClient _sshClient;
+        ShellStream _shellStream;
+        private StreamWriter _shellWriterStream;
         readonly Timer _timer = new Timer(5000.0);
         string _projectPath = "";
         string _projectName = "";
@@ -27,6 +27,8 @@ namespace Trik.Upload_Extension
             _sshClient = new SshClient(ip, "root", "");
             _sshClient.Connect();
             _sshClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
+            _shellStream = _sshClient.CreateShellStream("TRIK-SHELL", 80, 24, 800, 600, 1024);
+            _shellWriterStream = new StreamWriter(_shellStream) { AutoFlush = true };
             
             _timer.Start();
             _timer.Elapsed += KeepAlive;
@@ -56,6 +58,8 @@ namespace Trik.Upload_Extension
             _scpClient.Connect();
             _sshClient.Disconnect();
             _sshClient.Connect();
+            _shellStream = _sshClient.CreateShellStream("TRIK-SHELL", 80, 24, 800, 600, 1024);
+            _shellWriterStream = new StreamWriter(_shellStream);
             _timer.Elapsed += KeepAlive;
         }
 
@@ -76,7 +80,7 @@ namespace Trik.Upload_Extension
                 + "#some other commands\""
                 + " > " + fullRemoteName
                 + "; chmod +x " + fullRemoteName;
-            _sshClient.RunCommand(script);
+            _shellWriterStream.Write(script);
         }
 
         public void Update() 
@@ -95,15 +99,10 @@ namespace Trik.Upload_Extension
             }
         }
 
-        public string RunProgram()
+        public ShellStream RunProgram()
         {
-            var program = _sshClient.RunCommand(@"sh ~/trik-sharp/" + _projectName);
-            var msg = new StringBuilder("========== Run: ");
-            if (program.Error != "")
-                msg.Append("program failed with this Error ==========\n")
-                    .Append(program.Error);
-            else msg.Append("program succeeded with this Output ==========\n").Append(program.Result);
-            return msg.ToString();
+            _shellWriterStream.WriteLine(@"sh ~/trik-sharp/" + _projectName);    
+            return _shellStream;
         }
 
         public string ProjectPath
