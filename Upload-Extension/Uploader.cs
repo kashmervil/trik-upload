@@ -65,7 +65,7 @@ namespace Trik.Upload_Extension
             var fullRemoteName = "/home/root/trik-sharp/" + _projectName;
             var executables = from file in Directory.GetFiles(_projectPath) 
                      where file.EndsWith(".exe") 
-                     select getName(file);
+                     select Path.GetFileName(file);
 
             var script =
                    "echo \"#!/bin/sh\n"
@@ -111,8 +111,8 @@ namespace Trik.Upload_Extension
             get {return _projectPath;}
             set
             {
-                var newProjectName = getName(value.TrimSuffix(".fsproj").TrimSuffix(".csproj"));
-                var newProjectPath = (value.Substring(0, value.LastIndexOfAny(new[] { '\\', '/' }) + 1) + @"bin\Release\");
+                var newProjectName = Path.GetFileNameWithoutExtension(value);
+                var newProjectPath = Path.GetDirectoryName(value) + @"\bin\Release\";
 
                 if (_projectPath == newProjectPath) return;
                 _projectPath = newProjectPath;

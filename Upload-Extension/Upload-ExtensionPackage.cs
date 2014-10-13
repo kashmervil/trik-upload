@@ -144,7 +144,7 @@ namespace Trik.Upload_Extension
         {
             if (_isTRIKAplicationRunning) return;
             _isTRIKAplicationRunning = true;
-            ReportProgress(10000, "Starting an application on a controller");
+            //ReportProgress(10000, "Starting an application on a controller");
             var scnt = SynchronizationContext.Current;
             connectionWindow.Close();
             
@@ -166,8 +166,15 @@ namespace Trik.Upload_Extension
                 }
                 catch (Exception exception)
                 {
-                    connectionWindow.MessageLabel.Content = "Network error occurred while running an application. Trying to reconnect";
+                    scnt.Post(x =>
+                    {
+                        connectionWindow.MessageLabel.Content =
+                            "Network error occurred while running an application. Trying to reconnect";
+                        connectionWindow.RunProgram.IsEnabled = false;
+                        connectionWindow.UploadToTrik.IsEnabled = false;
+                    }, null);
                     WindowPane.OutputString(exception.Message);
+
                     Reconnect(scnt);
                 }
             });
@@ -178,55 +185,55 @@ namespace Trik.Upload_Extension
             if (uploader == null) return;
 
             connectionWindow.MessageLabel.Content = "Uploading...";
+            StatusBar.SetText("Uploading...");
             connectionWindow.UploadToTrik.IsEnabled = false;
             connectionWindow.RunProgram.IsEnabled = false;
+            var dte = (DTE2)GetService(typeof(DTE));
+            var buildConfiguration = dte.Solution.SolutionBuild.ActiveConfiguration.Name;
+
+            if ("Release" != buildConfiguration)
+            {
+                const string message = "Use Release build for better performance";
+                connectionWindow.MessageLabel.Content = message;
+                StatusBar.SetText(message);
+                connectionWindow.UploadToTrik.IsEnabled = true;
+                return;
+            }
 
             var scnt = SynchronizationContext.Current;
             System.Threading.Tasks.Task.Run(() =>
             {
-                var dte = (DTE2)GetService(typeof(DTE));
                 var projects = dte.Solution.Projects;
+                if (projects.Count > 2)
+                {
+                    const string message =
+                        "Your solution has several projects. Working with several projects is not supported!";
+                    scnt.Post(x => connectionWindow.MessageLabel.Content = message, null);
+                    StatusBar.SetText(message);
+                    return;
+                }
                 Project project;
                 try
                 {
-                    project = projects.Cast<Project>().First();//TODO: Working with several projects in one solution
-                    if (!project.Saved)
-                    {
-                        scnt.Post(x =>
-                        {
-                            connectionWindow.MessageLabel.Content = "Save Project before Uploading";
-                        }
-                            , null);
-                        StatusBar.SetText("Save Project before Uploading");
-                        return;
-                    }
+                    project = projects.Cast<Project>().First();
                 }
                 catch (Exception)
                 {
-                    scnt.Post(x =>
-                    {
-                        connectionWindow.MessageLabel.Content = "Possibly there's no project";
-                    }, null);
-                    StatusBar.SetText("Possibly there's no project");
+                    const string message = "Possibly there's no project";
+                    scnt.Post(x => connectionWindow.MessageLabel.Content = message, null);
+                    StatusBar.SetText(message);
                     return;
                 }
 
-                var projectPath = project.FullName.Substring(0, project.FullName.LastIndexOfAny(new[] {'\\', '/'}));
-                var projectDirectories = Directory.GetDirectories(projectPath);
-                var projectBin = projectPath + @"\bin";
-
-                if (!projectDirectories.Contains(projectBin) 
-                    || !Directory.GetDirectories(projectBin).Contains(projectBin + @"\Release"))
+                if (!Directory.Exists(Path.GetDirectoryName(project.FullName) + @"\bin\Release"))
                 {
-                    scnt.Post(x =>
-                    {
-                        connectionWindow.MessageLabel.Content = "Use Release build for better performance";
-                        connectionWindow.UploadToTrik.IsEnabled = true;
-                    }, null);
-                StatusBar.SetText("Use Release build for better performance");
-                return;
+                    const string message = "Build the project before uploading";
+                    scnt.Post(x => connectionWindow.MessageLabel.Content = message, null);
+                    StatusBar.SetText(message);
+                    return;
                 }
 
+                
                 try
                 { 
                     uploader.ProjectPath = project.FullName;
@@ -273,12 +280,13 @@ namespace Trik.Upload_Extension
             System.Threading.Tasks.Task.Run(() =>
             {
                 const int dueTime = 11000; //Usual time is taken for connection with a controller
+                const string message = "A connection is taking longer than usual";
                 var timeoutTimer = new Timer(x =>
                 {
-                    StatusBar.SetText("A connection is taking longer than usual");
+                    StatusBar.SetText(message);
                     scnt.Post(y =>
                     {
-                        connectionWindow.MessageLabel.Content = "A connection is taking longer than usual";
+                        connectionWindow.MessageLabel.Content = message;
                     }, null);
                 }, null, dueTime, -1);
 
@@ -292,6 +300,7 @@ namespace Trik.Upload_Extension
                         connectionWindow.MessageLabel.Content = "Connected!";
                         connectionWindow.UploadToTrik.IsEnabled = true;
                         firstUpload = false;
+
                     }
                     , null);
                     StopProgress();
@@ -316,6 +325,8 @@ namespace Trik.Upload_Extension
 
         private void ReportProgress(int period, String message)
         {
+            
+            StopProgress();
             _isProgressRunning = true;
             
             System.Threading.Tasks.Task.Run(() =>
@@ -353,10 +364,11 @@ namespace Trik.Upload_Extension
             catch (Exception)
             {
                 StopProgress();
-                StatusBar.SetText("Can't connect to TRIK. Check connection and try again");
+                const string message = "Can't connect to TRIK. Check connection and try again";
+                StatusBar.SetText(message);
                 scnt.Post(x =>
                 {
-                    connectionWindow.MessageLabel.Content = "Can't connect to TRIK. Check connection and try again";
+                    connectionWindow.MessageLabel.Content = message;
                     connectionWindow.UploadToTrik.IsEnabled = true;
                     firstUpload = false;
                 }
