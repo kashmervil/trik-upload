@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -17,18 +16,6 @@ using Thread = System.Threading.Thread;
 
 namespace Trik.Upload_Extension
 {
-    /// <summary>
-    /// This is the class that implements the package exposed by this assembly.
-    ///
-    /// The minimum requirement for a class to be considered a valid package for Visual Studio
-    /// is to implement the IVsPackage interface and register itself with the shell.
-    /// This package uses the helper classes defined inside the Managed Package Framework (MPF)
-    /// to do it: it derives from the Package class that provides the implementation of the 
-    /// IVsPackage interface and uses the registration attributes defined in the framework to 
-    /// register itself and its components with the shell.
-    /// </summary>
-    // This attribute tells the PkgDef creation utility (CreatePkgDef.exe) that this class is
-    // a package.
     [PackageRegistration(UseManagedResourcesOnly = true)]
     // This attribute is used to register the information needed to show this package
     // in the Help/About dialog of Visual Studio.
@@ -40,45 +27,30 @@ namespace Trik.Upload_Extension
     [Guid(GuidList.guidUpload_ExtensionPkgString)]
     public sealed class UploadExtensionPackage : Package
     {
-        private Uploader uploader;
-        private Window1 connectionWindow;
+        private Uploader _uploader;
+        private Window1 _connectionWindow;
 #if DEBUG 
-        private string ip = "10.0.40.161";
+        private string _ip = "10.0.40.161";
 #else   
-        private string ip = "192.168.1.1";
+        private string _ip = "192.168.1.1";
 #endif
-        private bool firstUpload = true;
+        private bool _isFirstUpload = true;
+        private bool _isTrikAplicationRunning;
+        private bool _isFirstRun = true;
 
         //Visual Studio communication constants 
         private bool _isProgressRunning;
         private uint _statusbarCookie;
         private IVsStatusbar _statusbar;
         private IVsOutputWindowPane _pane;
-        private bool _isTRIKAplicationRunning;
-        private bool _isFirstRun = true;
 
-        /// <summary>
-        /// Default constructor of the package.
-        /// Inside this method you can place any initialization code that does not require 
-        /// any Visual Studio service because at this point the package object is created but 
-        /// not sited yet inside Visual Studio environment. The place to do all the other 
-        /// initialization is the Initialize method.
-        /// </summary>
         public UploadExtensionPackage()
         {
-            Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Entering constructor for: {0}", ToString()));
+            Debug.WriteLine("Entering constructor for: {0}", ToString());
         }
 
-        /// <summary>
-        /// This function is called when the user clicks the menu item that shows the 
-        /// tool window. See the Initialize method to see how the menu item is associated to 
-        /// this function using the OleMenuCommandService service and the MenuCommand class.
-        /// </summary>
         private void ShowToolWindow(object sender, EventArgs e)
         {
-            // Get the instance number 0 of this tool window. This window is single instance so this instance
-            // is actually the only one.
-            // The last flag is set to true so that if the tool window does not exists it will be created.
             var window = FindToolWindow(typeof(MyToolWindow), 0, true);
             if ((null == window) || (null == window.Frame))
             {
@@ -93,15 +65,11 @@ namespace Trik.Upload_Extension
         // Overridden Package Implementation
         #region Package Members
 
-        /// <summary>
-        /// Initialization of the package; this method is called right after the package is sited, so this is the place
-        /// where you can put all the initialization code that rely on services provided by VisualStudio.
-        /// </summary>
         protected override void Initialize()
         {
-            var dte = (DTE2)GetService(typeof(DTE));
+            //var dte = (DTE2)GetService(typeof(DTE));
             
-            Debug.WriteLine (string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", ToString()));
+            Debug.WriteLine ("Entering Initialize() of: {0}", ToString());
             base.Initialize();
             
             // Add our command handlers for menu (commands must exist in the .vsct file)
@@ -109,12 +77,12 @@ namespace Trik.Upload_Extension
             if ( null != mcs )
             {
                 // Create the command for the menu item.
-                var menuCommandID = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadToTRIK);
-                var menuItem = new MenuCommand(MenuItemCallback, menuCommandID );
+                var menuCommandId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadToTRIK);
+                var menuItem = new MenuCommand(MenuItemCallback, menuCommandId );
                 mcs.AddCommand( menuItem );
                 // Create the command for the tool window
-                var toolwndCommandID = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadTRIKWindow);
-                var menuToolWin = new MenuCommand(ShowToolWindow, toolwndCommandID);
+                var toolwndCommandId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadTRIKWindow);
+                var menuToolWin = new MenuCommand(ShowToolWindow, toolwndCommandId);
                 mcs.AddCommand( menuToolWin );
             }
         }
@@ -127,28 +95,28 @@ namespace Trik.Upload_Extension
         /// </summary>
         private void MenuItemCallback(object sender, EventArgs e)
         {
-            connectionWindow = new Window1 {IpAddress = {Text = ip}};
-            if (null == uploader)
+            _connectionWindow = new Window1 {IpAddress = {Text = _ip}};
+            if (null == _uploader)
             {
-                connectionWindow.UploadToTrik.IsEnabled = false;
-                connectionWindow.RunProgram.IsEnabled = false;
+                _connectionWindow.UploadToTrik.IsEnabled = false;
+                _connectionWindow.RunProgram.IsEnabled = false;
             }
 
-            connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
-            connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
-            connectionWindow.RunProgram.Click += RunProgram_Click;
+            _connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
+            _connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
+            _connectionWindow.RunProgram.Click += RunProgram_Click;
             WindowPane.SetName("TRIK-Controller");
-            connectionWindow.ShowModal();
+            _connectionWindow.ShowModal();
 
         }
 
         private void RunProgram_Click(object sender, RoutedEventArgs e)
         {
-            if (_isTRIKAplicationRunning) return;
-            _isTRIKAplicationRunning = true;
+            if (_isTrikAplicationRunning) return;
+            _isTrikAplicationRunning = true;
             //ReportProgress(10000, "Starting an application on a controller");
             var scnt = SynchronizationContext.Current;
-            connectionWindow.Close();
+            _connectionWindow.Close();
             
             //WindowPane.Hide();
             WindowPane.Clear();
@@ -162,7 +130,7 @@ namespace Trik.Upload_Extension
                 StatusBar.SetText("Running application on TRIK. See output pane for more information");
                 try
                 {
-                    var programOutput = uploader.RunProgram();
+                    var programOutput = _uploader.RunProgram();
                     
                     if (!_isFirstRun) return;
                     
@@ -175,10 +143,10 @@ namespace Trik.Upload_Extension
                 {
                     scnt.Post(x =>
                     {
-                        connectionWindow.MessageLabel.Content =
+                        _connectionWindow.MessageLabel.Content =
                             "Network error occurred while running an application. Trying to reconnect";
-                        connectionWindow.RunProgram.IsEnabled = false;
-                        connectionWindow.UploadToTrik.IsEnabled = false;
+                        _connectionWindow.RunProgram.IsEnabled = false;
+                        _connectionWindow.UploadToTrik.IsEnabled = false;
                     }, null);
                     WindowPane.OutputString(exception.Message);
 
@@ -186,7 +154,7 @@ namespace Trik.Upload_Extension
                 }
                 finally
                 {
-                    _isTRIKAplicationRunning = false;
+                    _isTrikAplicationRunning = false;
                 }
             });
         }
@@ -198,21 +166,21 @@ namespace Trik.Upload_Extension
 
         void UploadToTrik_Click(object sender, RoutedEventArgs e)
         {
-            if (uploader == null) return;
+            if (_uploader == null) return;
 
-            connectionWindow.MessageLabel.Content = "Uploading...";
+            _connectionWindow.MessageLabel.Content = "Uploading...";
             StatusBar.SetText("Uploading...");
-            connectionWindow.UploadToTrik.IsEnabled = false;
-            connectionWindow.RunProgram.IsEnabled = false;
+            _connectionWindow.UploadToTrik.IsEnabled = false;
+            _connectionWindow.RunProgram.IsEnabled = false;
             var dte = (DTE2)GetService(typeof(DTE));
             var buildConfiguration = dte.Solution.SolutionBuild.ActiveConfiguration.Name;
 
             if ("Release" != buildConfiguration)
             {
                 const string message = "Use Release build for better performance";
-                connectionWindow.MessageLabel.Content = message;
+                _connectionWindow.MessageLabel.Content = message;
                 StatusBar.SetText(message);
-                connectionWindow.UploadToTrik.IsEnabled = true;
+                _connectionWindow.UploadToTrik.IsEnabled = true;
                 return;
             }
 
@@ -224,7 +192,7 @@ namespace Trik.Upload_Extension
                 {
                     const string message =
                         "Your solution has several projects. Working with several projects is not supported!";
-                    scnt.Post(x => connectionWindow.MessageLabel.Content = message, null);
+                    scnt.Post(x => _connectionWindow.MessageLabel.Content = message, null);
                     StatusBar.SetText(message);
                     return;
                 }
@@ -236,7 +204,7 @@ namespace Trik.Upload_Extension
                 catch (Exception)
                 {
                     const string message = "Possibly there's no project";
-                    scnt.Post(x => connectionWindow.MessageLabel.Content = message, null);
+                    scnt.Post(x => _connectionWindow.MessageLabel.Content = message, null);
                     StatusBar.SetText(message);
                     return;
                 }
@@ -244,7 +212,7 @@ namespace Trik.Upload_Extension
                 if (!Directory.Exists(Path.GetDirectoryName(project.FullName) + @"\bin\Release"))
                 {
                     const string message = "Build the project before uploading";
-                    scnt.Post(x => connectionWindow.MessageLabel.Content = message, null);
+                    scnt.Post(x => _connectionWindow.MessageLabel.Content = message, null);
                     StatusBar.SetText(message);
                     return;
                 }
@@ -252,14 +220,14 @@ namespace Trik.Upload_Extension
                 
                 try
                 { 
-                    uploader.ProjectPath = project.FullName;
+                    _uploader.ProjectPath = project.FullName;
                     ReportProgress(8000, "Uploading");
-                    uploader.Update();
+                    _uploader.Update();
                     scnt.Post(x =>
                     {
-                        connectionWindow.MessageLabel.Content = "Uploaded!";
+                        _connectionWindow.MessageLabel.Content = "Uploaded!";
                         //connectionWindow.UploadToTrik.IsEnabled = true;
-                        connectionWindow.Close();
+                        _connectionWindow.Close();
                     }, null);
                     StopProgress();
                     StatusBar.SetText("Uploaded!");
@@ -269,7 +237,7 @@ namespace Trik.Upload_Extension
                     StopProgress();
                     scnt.Post(x =>
                     {
-                        connectionWindow.MessageLabel.Content = "Error is occurred. Trying to reconnect...";
+                        _connectionWindow.MessageLabel.Content = "Error is occurred. Trying to reconnect...";
                     }, null);
                     //StatusBar.SetText("Error is occurred. Trying to reconnect...");
                     Reconnect(scnt);
@@ -280,19 +248,19 @@ namespace Trik.Upload_Extension
 
         void ConnectToTrik_Click(object sender, RoutedEventArgs e)
         {
-            if (ip == connectionWindow.IpAddress.Text && !firstUpload)
+            if (_ip == _connectionWindow.IpAddress.Text && !_isFirstUpload)
             {
-                connectionWindow.MessageLabel.Content = "Already connected to this host!";
+                _connectionWindow.MessageLabel.Content = "Already connected to this host!";
                 StatusBar.SetText("Already connected to this host!");
                 return;
             }
-            connectionWindow.ConnectToTrik.IsEnabled = false;
-            connectionWindow.RunProgram.IsEnabled = false;
+            _connectionWindow.ConnectToTrik.IsEnabled = false;
+            _connectionWindow.RunProgram.IsEnabled = false;
 
-            connectionWindow.MessageLabel.Content = "Connecting...";
-            ip = connectionWindow.IpAddress.Text;
+            _connectionWindow.MessageLabel.Content = "Connecting...";
+            _ip = _connectionWindow.IpAddress.Text;
             var scnt = SynchronizationContext.Current;
-            connectionWindow.UploadToTrik.IsEnabled = false;
+            _connectionWindow.UploadToTrik.IsEnabled = false;
             System.Threading.Tasks.Task.Run(() =>
             {
                 const int dueTime = 11000; //Usual time is taken for connection with a controller
@@ -302,7 +270,7 @@ namespace Trik.Upload_Extension
                     StatusBar.SetText(message);
                     scnt.Post(y =>
                     {
-                        connectionWindow.MessageLabel.Content = message;
+                        _connectionWindow.MessageLabel.Content = message;
                     }, null);
                 }, null, dueTime, -1);
 
@@ -310,12 +278,12 @@ namespace Trik.Upload_Extension
 
                 try
                 {
-                    uploader = new Uploader(ip);
+                    _uploader = new Uploader(_ip);
                     scnt.Post(x =>
                     {
-                        connectionWindow.MessageLabel.Content = "Connected!";
-                        connectionWindow.UploadToTrik.IsEnabled = true;
-                        firstUpload = false;
+                        _connectionWindow.MessageLabel.Content = "Connected!";
+                        _connectionWindow.UploadToTrik.IsEnabled = true;
+                        _isFirstUpload = false;
 
                     }
                     , null);
@@ -329,11 +297,11 @@ namespace Trik.Upload_Extension
                     WindowPane.Clear();
                     WindowPane.Activate();
                     WindowPane.OutputString(exeption.Message);
-                    scnt.Post(x => connectionWindow.MessageLabel.Content = "Connection attempt failed", null);
+                    scnt.Post(x => _connectionWindow.MessageLabel.Content = "Connection attempt failed", null);
                 }
                 finally
                 {
-                    scnt.Post(x => connectionWindow.ConnectToTrik.IsEnabled = true , null);
+                    scnt.Post(x => _connectionWindow.ConnectToTrik.IsEnabled = true , null);
                     timeoutTimer.Dispose();
                 }
             });
@@ -366,14 +334,14 @@ namespace Trik.Upload_Extension
             try
             {
                 ReportProgress(8000, "Network error is occurred. Trying to reconnect");
-                uploader.Reconnect();
+                _uploader.Reconnect();
                 StopProgress();
                 StatusBar.SetText("Connected!");
                 scnt.Post(x =>
                 {
-                    connectionWindow.MessageLabel.Content = "Connected!";
-                    connectionWindow.UploadToTrik.IsEnabled = true;
-                    firstUpload = false;
+                    _connectionWindow.MessageLabel.Content = "Connected!";
+                    _connectionWindow.UploadToTrik.IsEnabled = true;
+                    _isFirstUpload = false;
                 }
                     , null);
             }
@@ -384,13 +352,13 @@ namespace Trik.Upload_Extension
                 StatusBar.SetText(message);
                 scnt.Post(x =>
                 {
-                    connectionWindow.MessageLabel.Content = message;
-                    connectionWindow.UploadToTrik.IsEnabled = true;
-                    firstUpload = false;
+                    _connectionWindow.MessageLabel.Content = message;
+                    _connectionWindow.UploadToTrik.IsEnabled = true;
+                    _isFirstUpload = false;
                 }
                     , null);
-                uploader = null;
-                firstUpload = true;
+                _uploader = null;
+                _isFirstUpload = true;
             }
         }
 
