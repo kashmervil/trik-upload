@@ -59,7 +59,7 @@ namespace Trik.Upload_Extension
             _sshClient.Disconnect();
             _sshClient.Connect();
             _shellStream = _sshClient.CreateShellStream("TRIK-SHELL", 80, 24, 800, 600, 1024);
-            _shellWriterStream = new StreamWriter(_shellStream);
+            _shellWriterStream = new StreamWriter(_shellStream) { AutoFlush = true };
             _timer.Elapsed += KeepAlive;
         }
 
@@ -75,12 +75,14 @@ namespace Trik.Upload_Extension
                    "echo \"#!/bin/sh\n"
                 + "#killall trikGui\n"
                 + "mono " + GetUploadPath(executables.First()) + " $* \n"
-                + "cd ~/trik/\n"
+                + "#cd ~/trik/\n"
                 + "#./trikGui -qws &> /dev/null &"
                 + "#some other commands\""
                 + " > " + fullRemoteName
                 + "; chmod +x " + fullRemoteName;
-            _shellWriterStream.Write(script);
+            //_shellWriterStream.Write(script);
+            _sshClient.RunCommand(script);
+            _shellStream.Flush();
         }
 
         public void Update() 
@@ -101,7 +103,7 @@ namespace Trik.Upload_Extension
 
         public ShellStream RunProgram()
         {
-            _shellWriterStream.WriteLine(@"sh ~/trik-sharp/" + _projectName);    
+            _shellWriterStream.WriteLine(@"./trik-sharp/" + _projectName);    
             return _shellStream;
         }
 
