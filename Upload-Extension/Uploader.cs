@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Renci.SshNet;
 using System.IO;
@@ -9,14 +10,12 @@ namespace Trik.Upload_Extension
 {
     public class Uploader : IDisposable
     {
-        readonly Dictionary<string, DateTime> _lastUploaded = new Dictionary<string, DateTime>();
         readonly ScpClient _scpClient;
         readonly SshClient _sshClient;
         ShellStream _shellStream;
         private StreamWriter _shellWriterStream;
         readonly Timer _timer = new Timer(5000.0);
-        string _projectPath = "";
-        string _projectName = "";
+        private readonly string _libconwrapPath;
         
         public Uploader(string ip)
         {
@@ -32,25 +31,19 @@ namespace Trik.Upload_Extension
             
             _timer.Start();
             _timer.Elapsed += KeepAlive;
-            _sshClient.RunCommand("mkdir /home/root/trik-sharp; mkdir /home/root/trik-sharp/uploads");
+            _sshClient.RunCommand("mkdir /home/root/trik-sharp /home/root/trik-sharp/uploads /home/root/trik/scripts/trik-sharp");
+
+            var resources = Path.GetDirectoryName(typeof(Uploader).Assembly.Location);
+            _libconwrapPath = resources + @"\Resources\libconWrap.so.1.0.0";
         }
+
+        public SolutionManager SolutionManager { get; set; }
 
         private void KeepAlive(object sender, ElapsedEventArgs e)
         {
  	        _scpClient.SendKeepAlive();
             _sshClient.SendKeepAlive();
         }
-
-        private string getName(string fullName)
-        {
-            return fullName.Substring(fullName.LastIndexOfAny(new[] { '\\', '/' }) + 1);
-        }
-
-        private string GetUploadPath(string hostPath)
-        {
-            return @"/home/root/trik-sharp/uploads/" + _projectName + "/" + getName(hostPath);
-        }
-
         public void Reconnect()
         {
             _timer.Elapsed -= KeepAlive;
@@ -62,71 +55,56 @@ namespace Trik.Upload_Extension
             _shellWriterStream = new StreamWriter(_shellStream) { AutoFlush = true };
             _timer.Elapsed += KeepAlive;
         }
-
-
-        private void UpdateScript()
+        public void UploadActiveProject() 
         {
-            var fullRemoteName = "/home/root/trik-sharp/" + _projectName;
-            var executables = from file in Directory.GetFiles(_projectPath) 
-                     where file.EndsWith(".exe") 
-                     select Path.GetFileName(file);
+            if (SolutionManager.ActiveProject == null)
+                throw new InvalidOperationException("Calling UploadActiveProject before setting ActiveProject property");
 
-            var script =
-                   "echo \"#!/bin/sh\n"
-                + "#killall trikGui\n"
-                + "mono " + GetUploadPath(executables.First()) + " $* \n"
-                + "#cd ~/trik/\n"
-                + "#./trikGui -qws &> /dev/null &"
-                + "#some other commands\""
-                + " > " + fullRemoteName
-                + "; chmod +x " + fullRemoteName;
-            //_shellWriterStream.Write(script);
-            _sshClient.RunCommand(script);
-            _shellStream.Flush();
-        }
-
-        public void Update() 
-        {
-        var newFiles = Directory.GetFiles(ProjectPath);
-        foreach (var file in newFiles)
+            var newFiles = Directory.GetFiles(SolutionManager.ActiveProject.ProjectLocalBuildPath);
+            var uploadedFiles = SolutionManager.ActiveProject.UploadedFiles;
+            foreach (var file in newFiles)
             {
-                if (!_lastUploaded.ContainsKey(file))
+                if (!uploadedFiles.ContainsKey(file))
                 {
-                        _lastUploaded.Add(file, DateTime.MinValue);
+                        uploadedFiles.Add(file, DateTime.MinValue);
                 }
                 var info = new FileInfo(file);
-                if (info.LastWriteTime <= _lastUploaded[file]) continue;
-                _lastUploaded[file] = info.LastWriteTime;
-                _scpClient.Upload(info, GetUploadPath(file));
+                if (info.LastWriteTime <= uploadedFiles[file]) continue;
+                _scpClient.Upload(info, SolutionManager.ActiveProject.FilesUploadPath + Path.GetFileName(file));
+                uploadedFiles[file] = info.LastWriteTime;
             }
         }
 
         public ShellStream RunProgram()
         {
-            _shellWriterStream.WriteLine(@"./trik-sharp/" + _projectName);    
+            _shellWriterStream.WriteLine("." + SolutionManager.ActiveProject.RemoteScriptName);    
             return _shellStream;
         }
 
-        public string ProjectPath
+        public void StopProgram()
         {
-            get {return _projectPath;}
+            _sshClient.RunCommand("killall mono");
+        }
+
+        public string ActiveProject
+        {
+            get { return SolutionManager.ActiveProject.ProjectFilePath; }
             set
             {
-                var newProjectName = Path.GetFileNameWithoutExtension(value);
-                var newProjectPath = Path.GetDirectoryName(value) + @"\bin\Release\";
+                var project = SolutionManager.Projects.Find(x => x.ProjectFilePath == value);
+                if (project != null)
+                {
+                    SolutionManager.ActiveProject = project;
+                    return;
+                }
 
-                if (_projectPath == newProjectPath) return;
-                _projectPath = newProjectPath;
-                _projectName = newProjectName;
-                _lastUploaded.Clear();
-                _sshClient.RunCommand("mkdir " + GetUploadPath(""));
-                UpdateScript();
-                var resources = Path.GetDirectoryName(typeof(Uploader).Assembly.Location);
-                if (resources == null) return;
-                var libconwrap = resources + @"\Resources\libconWrap.so.1.0.0";
-                _scpClient.Upload(new FileInfo(libconwrap), GetUploadPath(libconwrap));
+                var newProject = new UploadProjectInfo(value);
+                _sshClient.RunCommand("mkdir " + newProject.FilesUploadPath + "; " + newProject.Script);
+
+                _scpClient.Upload(new FileInfo(_libconwrapPath), newProject.FilesUploadPath + Path.GetFileName(_libconwrapPath));
+                SolutionManager.Projects.Add(newProject);
+                SolutionManager.ActiveProject = newProject;
             }
-
         }
 
         public void Dispose()
@@ -134,6 +112,73 @@ namespace Trik.Upload_Extension
             _sshClient.Dispose();
             _scpClient.Dispose();
             _timer.Dispose();
+        }
+    }
+
+    public class SolutionManager
+    {
+        public SolutionManager()
+        {
+            Projects = new List<UploadProjectInfo>();
+        }
+        public SolutionManager(IList<string> projects)
+        {
+            Projects = new List<UploadProjectInfo>();
+            foreach (var project in projects)
+            {
+                Projects.Add(new UploadProjectInfo(project));
+            }
+        }
+        public List<UploadProjectInfo> Projects { get; private set; }
+
+        public UploadProjectInfo ActiveProject { get; set; }
+    }
+
+    public class UploadProjectInfo
+    {
+        public UploadProjectInfo(string projectFilePath)
+        {
+            ProjectName = Path.GetFileNameWithoutExtension(projectFilePath);
+            if (ProjectName == null)
+                throw new InvalidOperationException("Unable to find a project file: " + projectFilePath);
+            ProjectLocalBuildPath = Path.GetDirectoryName(projectFilePath) + @"\bin\Release\";
+            if (!Directory.Exists(ProjectLocalBuildPath))
+                Directory.CreateDirectory(ProjectLocalBuildPath);
+            var executables =  Directory.GetFiles(ProjectLocalBuildPath).Where(x => x.EndsWith(".exe")).ToArray();
+            if (executables.Length != 1) 
+                throw new InvalidOperationException("Release folder must contain only one *.exe file");
+            ProjectFilePath = projectFilePath;
+            ExecutableFileName = Path.GetFileName(executables[0]);
+            //Invalid characters replacing routine e.g "project with spaces" ==> "project\ with\ spaces" 
+            //which is a valid representation for path/name with spaces in linux 
+            var properName = ProjectName.Aggregate("", (acc,x) => (x == ' ')?acc + @"\ ":acc + x.ToString(CultureInfo.InvariantCulture));
+            RemoteScriptName = @"/home/root/trik/scripts/trik-sharp/" + properName;
+            FilesUploadPath = @"/home/root/trik-sharp/uploads/" + properName + "/";
+            UploadedFiles = new Dictionary<string, DateTime>();
+        }
+
+        public string ProjectName { get; private set; }
+        public string ProjectLocalBuildPath { get; private set; }
+        public string ProjectFilePath { get; private set; }
+        public string RemoteScriptName { get; private set; }
+        public string ExecutableFileName { get; private set; }
+        public string FilesUploadPath { get; private set; }
+        public Dictionary<string, DateTime> UploadedFiles { get; private set; }
+        public string Script
+        {
+            get
+            {
+                var text = 
+                "echo \"#!/bin/sh\n"
+                + "#killall trikGui\n"
+                + "mono " + FilesUploadPath + ExecutableFileName + " $* \n"
+                + "#cd ~/trik/\n"
+                + "#./trikGui -qws &> /dev/null &"
+                + "#some other commands\""
+                + " > " + RemoteScriptName
+                + "; chmod +x " + RemoteScriptName;
+                return text;
+            }
         }
     }
 }

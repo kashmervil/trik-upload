@@ -207,7 +207,7 @@ namespace Microsoft.VsSDK.IntegrationTestLibrary
         /// <summary>
         /// Closes the currently open solution (if any), and creates a new solution with the given name.
         /// </summary>
-        /// <param name="solutionName">Name of new solution.</param>
+        /// <param name="solutionName">ProjectName of new solution.</param>
         public void CreateEmptySolution(string directory, string solutionName)
         {
             CloseCurrentSolution(__VSSLNSAVEOPTIONS.SLNSAVEOPT_NoSave);
@@ -258,8 +258,8 @@ namespace Microsoft.VsSDK.IntegrationTestLibrary
         /// <summary>
         /// Creates a project.
         /// </summary>
-        /// <param name="projectName">Name of new project.</param>
-        /// <param name="templateName">Name of project template to use</param>
+        /// <param name="projectName">ProjectName of new project.</param>
+        /// <param name="templateName">ProjectName of project template to use</param>
         /// <param name="language">language</param>
         /// <returns>New project.</returns>
         public void CreateProjectFromTemplate(string projectName, string templateName, string language, bool exclusive)

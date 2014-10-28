@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,7 @@ using Microsoft.VisualStudio.Shell;
 using EnvDTE;
 using EnvDTE80;
 using Thread = System.Threading.Thread;
+using Timer = System.Threading.Timer;
 
 namespace Trik.Upload_Extension
 {
@@ -30,7 +32,7 @@ namespace Trik.Upload_Extension
         private Uploader _uploader;
         private Window1 _connectionWindow;
 #if DEBUG 
-        private string _ip = "10.0.40.161";
+        private string _ip = "10.0.40.166";
 #else   
         private string _ip = "192.168.1.1";
 #endif
@@ -43,6 +45,13 @@ namespace Trik.Upload_Extension
         private uint _statusbarCookie;
         private IVsStatusbar _statusbar;
         private IVsOutputWindowPane _pane;
+
+
+
+        private Solution _solution;
+
+
+
 
         public UploadExtensionPackage()
         {
@@ -187,42 +196,26 @@ namespace Trik.Upload_Extension
             var scnt = SynchronizationContext.Current;
             System.Threading.Tasks.Task.Run(() =>
             {
-                var projects = dte.Solution.Projects;
-                if (projects.Count > 2)
-                {
-                    const string message =
-                        "Your solution has several projects. Working with several projects is not supported!";
-                    scnt.Post(x => _connectionWindow.MessageLabel.Content = message, null);
-                    StatusBar.SetText(message);
-                    return;
-                }
-                Project project;
-                try
-                {
-                    project = projects.Cast<Project>().First();
-                }
-                catch (Exception)
-                {
-                    const string message = "Possibly there's no project";
-                    scnt.Post(x => _connectionWindow.MessageLabel.Content = message, null);
-                    StatusBar.SetText(message);
-                    return;
-                }
 
-                if (!Directory.Exists(Path.GetDirectoryName(project.FullName) + @"\bin\Release"))
+                var solution = dte.Solution;
+                var projects = GetSolutionProjects(solution);
+                if (solution != _solution)
                 {
-                    const string message = "Build the project before uploading";
-                    scnt.Post(x => _connectionWindow.MessageLabel.Content = message, null);
-                    StatusBar.SetText(message);
-                    return;
+                    _uploader.SolutionManager = new SolutionManager( /*projects*/);
+                    _solution = solution;
+                    if (projects.Count == 0)
+                    {
+                        const string message = "Possibly there's no project";
+                        scnt.Post(x => _connectionWindow.MessageLabel.Content = message, null);
+                        StatusBar.SetText(message);
+                        return;
+                    }
                 }
-
-                
+                _uploader.ActiveProject = projects[0];
                 try
                 { 
-                    _uploader.ProjectPath = project.FullName;
                     ReportProgress(8000, "Uploading");
-                    _uploader.Update();
+                    _uploader.UploadActiveProject();
                     scnt.Post(x =>
                     {
                         _connectionWindow.MessageLabel.Content = "Uploaded!";
@@ -360,6 +353,37 @@ namespace Trik.Upload_Extension
                 _uploader = null;
                 _isFirstUpload = true;
             }
+        }
+
+        private IList<string> GetSolutionProjects(Solution solution)
+        {
+            var list = new List<string>();
+            foreach (var project in solution.OfType<Project>())
+            {
+                if (project.Kind == ProjectKinds.vsProjectKindSolutionFolder)
+                    list.AddRange(GetSolutionFolderProjects(project));
+                else 
+                    list.Add(project.FullName);
+            }
+            return list;
+        }
+
+        private IList<string> GetSolutionFolderProjects(Project projectFolder)
+        {
+            var list = new List<string>();
+            for (var i = 0; i < projectFolder.ProjectItems.Count; i++)
+            {
+                var project = projectFolder.ProjectItems.Item(i).SubProject;
+                if (project == null) continue;
+
+                if (project.Kind == ProjectKinds.vsProjectKindSolutionFolder)
+                    list.AddRange(GetSolutionFolderProjects(project));
+                else
+                {
+                    list.Add(project.FullName);
+                }
+            }
+            return list;
         }
 
         private void StopProgress()
