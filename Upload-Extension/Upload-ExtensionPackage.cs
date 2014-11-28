@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
@@ -355,7 +355,7 @@ namespace Trik.Upload_Extension
             }
         }
 
-        private IList<string> GetSolutionProjects(Solution solution)
+        private static List<string> GetSolutionProjects(IEnumerable solution)
         {
             var list = new List<string>();
             foreach (var project in solution.OfType<Project>())
@@ -365,17 +365,18 @@ namespace Trik.Upload_Extension
                 else 
                     list.Add(project.FullName);
             }
-            return list;
+            return list.Where(x => !String.IsNullOrWhiteSpace(x)).ToList();
+            //{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC} -- C#
+            //{f2a71f9b-5d33-465a-a702-920d77279786} -- F#
         }
 
-        private IList<string> GetSolutionFolderProjects(Project projectFolder)
+        private static List<string> GetSolutionFolderProjects(Project projectFolder)
         {
             var list = new List<string>();
-            for (var i = 0; i < projectFolder.ProjectItems.Count; i++)
+            foreach (var project in projectFolder.ProjectItems.OfType<ProjectItem>()
+                                    .Select(item => item.SubProject)
+                                    .Where(project => project != null))
             {
-                var project = projectFolder.ProjectItems.Item(i).SubProject;
-                if (project == null) continue;
-
                 if (project.Kind == ProjectKinds.vsProjectKindSolutionFolder)
                     list.AddRange(GetSolutionFolderProjects(project));
                 else
