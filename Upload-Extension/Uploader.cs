@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Renci.SshNet;
 using System.IO;
 using System.Timers;
@@ -53,10 +54,17 @@ namespace Trik.Upload_Extension
             _shellWriterStream = new StreamWriter(_shellStream) { AutoFlush = true };
             _timer.Elapsed += KeepAlive;
         }
-        public void UploadActiveProject() 
+        public void UploadActiveProject()
         {
-            if (SolutionManager.ActiveProject == null)
+            var activeProject = SolutionManager.ActiveProject;
+            if (activeProject == null)
                 throw new InvalidOperationException("Calling UploadActiveProject before setting ActiveProject property");
+            if (activeProject.UploadedFiles.Count == 0)
+            {
+                _sshClient.RunCommand("mkdir " + activeProject.FilesUploadPath + "; " + activeProject.Script);
+                _scpClient.Upload(new FileInfo(_libconwrapPath),
+                    activeProject.FilesUploadPath + Path.GetFileName(_libconwrapPath));
+            }
 
             var newFiles = Directory.GetFiles(SolutionManager.ActiveProject.ProjectLocalBuildPath);
             var uploadedFiles = SolutionManager.ActiveProject.UploadedFiles;
@@ -84,27 +92,6 @@ namespace Trik.Upload_Extension
             _sshClient.RunCommand("killall mono");
         }
 
-        public string ActiveProject
-        {
-            get { return SolutionManager.ActiveProject.ProjectFilePath; }
-            set
-            {
-                var project = SolutionManager.Projects.Find(x => x.ProjectFilePath == value);
-                if (project != null)
-                {
-                    SolutionManager.ActiveProject = project;
-                    return;
-                }
-
-                var newProject = new UploadProjectInfo(value);
-                _sshClient.RunCommand("mkdir " + newProject.FilesUploadPath + "; " + newProject.Script);
-
-                _scpClient.Upload(new FileInfo(_libconwrapPath), newProject.FilesUploadPath + Path.GetFileName(_libconwrapPath));
-                SolutionManager.Projects.Add(newProject);
-                SolutionManager.ActiveProject = newProject;
-            }
-        }
-
         public void Dispose()
         {
             _sshClient.Dispose();
@@ -115,20 +102,35 @@ namespace Trik.Upload_Extension
 
     public class SolutionManager
     {
-        public SolutionManager()
+        public SolutionManager(string name)
         {
+            FullName = name;
             Projects = new List<UploadProjectInfo>();
         }
-        public SolutionManager(IList<string> projects)
+        public SolutionManager(string name, IList<string> projects)
         {
+            FullName = name;
             Projects = new List<UploadProjectInfo>();
             foreach (var project in projects)
             {
                 Projects.Add(new UploadProjectInfo(project));
             }
         }
-        public List<UploadProjectInfo> Projects { get; private set; }
 
+        public void UpdateProjects(IList<string> newProjects)
+        {
+            var oldProjects = Projects.Select(x => x.ProjectFilePath).ToList();
+            foreach (var i in newProjects.Except(oldProjects))
+            {
+                Projects.Add(new UploadProjectInfo(i));
+            }
+            foreach (var i in oldProjects.Except(newProjects))
+            {
+                Projects.RemoveAll(x => x.ProjectFilePath == i);
+            }
+        }
+        public List<UploadProjectInfo> Projects { get; private set; }
+        public string FullName { get; private set; }
         public UploadProjectInfo ActiveProject { get; set; }
     }
 }

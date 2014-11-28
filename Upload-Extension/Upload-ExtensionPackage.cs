@@ -29,10 +29,10 @@ namespace Trik.Upload_Extension
     [Guid(GuidList.guidUpload_ExtensionPkgString)]
     public sealed class UploadExtensionPackage : Package
     {
-        private Uploader _uploader;
+        private Uploader Uploader { get; set; }
         private Window1 _connectionWindow;
 #if DEBUG 
-        private string _ip = "10.0.40.166";
+        private string _ip = "10.0.40.107";
 #else   
         private string _ip = "192.168.1.1";
 #endif
@@ -105,7 +105,7 @@ namespace Trik.Upload_Extension
         private void MenuItemCallback(object sender, EventArgs e)
         {
             _connectionWindow = new Window1 {IpAddress = {Text = _ip}};
-            if (null == _uploader)
+            if (null == Uploader)
             {
                 _connectionWindow.UploadToTrik.IsEnabled = false;
                 _connectionWindow.RunProgram.IsEnabled = false;
@@ -139,7 +139,7 @@ namespace Trik.Upload_Extension
                 StatusBar.SetText("Running application on TRIK. See output pane for more information");
                 try
                 {
-                    var programOutput = _uploader.RunProgram();
+                    var programOutput = Uploader.RunProgram();
                     
                     if (!_isFirstRun) return;
                     
@@ -175,7 +175,7 @@ namespace Trik.Upload_Extension
 
         void UploadToTrik_Click(object sender, RoutedEventArgs e)
         {
-            if (_uploader == null) return;
+            if (Uploader == null) return;
 
             _connectionWindow.MessageLabel.Content = "Uploading...";
             StatusBar.SetText("Uploading...");
@@ -196,26 +196,13 @@ namespace Trik.Upload_Extension
             var scnt = SynchronizationContext.Current;
             System.Threading.Tasks.Task.Run(() =>
             {
+                var projects = GetSolutionProjects(dte.Solution);               
+                Uploader.SolutionManager.UpdateProjects(projects);
 
-                var solution = dte.Solution;
-                var projects = GetSolutionProjects(solution);
-                if (solution != _solution)
-                {
-                    _uploader.SolutionManager = new SolutionManager( /*projects*/);
-                    _solution = solution;
-                    if (projects.Count == 0)
-                    {
-                        const string message = "Possibly there's no project";
-                        scnt.Post(x => _connectionWindow.MessageLabel.Content = message, null);
-                        StatusBar.SetText(message);
-                        return;
-                    }
-                }
-                _uploader.ActiveProject = projects[0];
                 try
                 { 
                     ReportProgress(8000, "Uploading");
-                    _uploader.UploadActiveProject();
+                    Uploader.UploadActiveProject();
                     scnt.Post(x =>
                     {
                         _connectionWindow.MessageLabel.Content = "Uploaded!";
@@ -271,7 +258,7 @@ namespace Trik.Upload_Extension
 
                 try
                 {
-                    _uploader = new Uploader(_ip);
+                    Uploader = new Uploader(_ip);
                     scnt.Post(x =>
                     {
                         _connectionWindow.MessageLabel.Content = "Connected!";
@@ -280,6 +267,10 @@ namespace Trik.Upload_Extension
 
                     }
                     , null);
+                    var dte = (DTE2)GetService(typeof(DTE));
+                    var solution = dte.Solution;
+                    Uploader.SolutionManager = new SolutionManager(solution.FullName, GetSolutionProjects(solution.Projects));
+                    Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects.First();
                     StopProgress();
                     StatusBar.SetText("Connected!");
                 }
@@ -327,7 +318,7 @@ namespace Trik.Upload_Extension
             try
             {
                 ReportProgress(8000, "Network error is occurred. Trying to reconnect");
-                _uploader.Reconnect();
+                Uploader.Reconnect();
                 StopProgress();
                 StatusBar.SetText("Connected!");
                 scnt.Post(x =>
@@ -350,7 +341,7 @@ namespace Trik.Upload_Extension
                     _isFirstUpload = false;
                 }
                     , null);
-                _uploader = null;
+                Uploader = null;
                 _isFirstUpload = true;
             }
         }
