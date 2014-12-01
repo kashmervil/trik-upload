@@ -46,13 +46,6 @@ namespace Trik.Upload_Extension
         private IVsStatusbar _statusbar;
         private IVsOutputWindowPane _pane;
 
-
-
-        private Solution _solution;
-
-
-
-
         public UploadExtensionPackage()
         {
             Debug.WriteLine("Entering constructor for: {0}", ToString());

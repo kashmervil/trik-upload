@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -10,25 +9,22 @@ namespace Trik.Upload_Extension
     {
         public UploadProjectInfo(string projectFilePath)
         {
+            ProjectFilePath = projectFilePath;
             ProjectName = Path.GetFileNameWithoutExtension(projectFilePath);
             if (ProjectName == null)
                 throw new InvalidOperationException("Unable to find a project file: " + projectFilePath);
             ProjectLocalBuildPath = Path.GetDirectoryName(projectFilePath) + @"\bin\Release\";
             if (!Directory.Exists(ProjectLocalBuildPath))
                 Directory.CreateDirectory(ProjectLocalBuildPath);
-            var executables =  Directory.GetFiles(ProjectLocalBuildPath).Where(x => x.EndsWith(".exe")).ToArray();
-            if (executables.Length != 1) 
-                throw new InvalidOperationException("Release folder must contain only one *.exe file");
-            ProjectFilePath = projectFilePath;
-            ExecutableFileName = Path.GetFileName(executables[0]);
-            //Invalid characters replacing routine e.g "project with spaces" ==> "project\ with\ spaces" 
+            //Invalid characters replacing routine e.g "project with spaces-and-dashes" ==> "project\ with\ spaces_and_dashes" 
             //which is a valid representation for path/name with spaces in linux 
-            var properName = ProjectName.Aggregate("", (acc,x) => (x == ' ')?acc + @"\ ":acc + x.ToString(CultureInfo.InvariantCulture));
+            var properName = ProjectName.Replace(" ", @"\ ").Replace("-", "_");
             RemoteScriptName = @"/home/root/trik/scripts/trik-sharp/" + properName;
             FilesUploadPath = @"/home/root/trik-sharp/uploads/" + properName + "/";
+            var executables = Directory.GetFiles(ProjectLocalBuildPath).Where(x => x.EndsWith(".exe")).ToArray();
+            ExecutableFileName = (executables.Length == 1) ? Path.GetFileName(executables[0]) : properName + ".exe";
             UploadedFiles = new Dictionary<string, DateTime>();
         }
-
         public string ProjectName { get; private set; }
         public string ProjectLocalBuildPath { get; private set; }
         public string ProjectFilePath { get; private set; }
