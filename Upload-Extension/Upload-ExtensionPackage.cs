@@ -32,7 +32,7 @@ namespace Trik.Upload_Extension
         private Uploader Uploader { get; set; }
         private Window1 _connectionWindow;
 #if DEBUG 
-        private string _ip = "10.0.40.107";
+        private string _ip = "10.0.40.125";
 #else   
         private string _ip = "192.168.1.1";
 #endif
