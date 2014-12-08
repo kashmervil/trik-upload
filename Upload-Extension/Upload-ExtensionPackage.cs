@@ -79,13 +79,9 @@ namespace Trik.Upload_Extension
             if ( null != mcs )
             {
                 // Create the command for the menu item.
-                var menuCommandId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadToTRIK);
+                var menuCommandId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.ConnectToTarget);
                 var menuItem = new MenuCommand(MenuItemCallback, menuCommandId );
                 mcs.AddCommand( menuItem );
-                // Create the command for the tool window
-                var toolwndCommandId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.uploadTRIKWindow);
-                var menuToolWin = new MenuCommand(ShowToolWindow, toolwndCommandId);
-                mcs.AddCommand( menuToolWin );
             }
         }
         #endregion

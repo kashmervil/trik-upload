@@ -22,32 +22,87 @@
   
     
     <Buttons>
-
-      <Button guid="guidUpload_ExtensionCmdSet" id="UploadToTrik" priority="0x0100" type="Button">
+      
+      <!--Connect Button-->
+      <Button guid="guidUpload_ExtensionCmdSet" id="ConnectToTarget" priority="0x0100" type="Button">
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Connect to TRIK</ButtonText>
+        </Strings>
+      </Button>
+
+      <!--Reconnect Button-->
+      <Button guid="guidUpload_ExtensionCmdSet" id="ReconnectToTarget" priority="0x0100" type="Button">
+        <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
+        <Icon guid="guidImages" id="bmpPicSearch" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Reconnect to TRIK</ButtonText>
+        </Strings>
+      </Button>
+
+      <!--Disconnect Button-->
+      <Button guid="guidUpload_ExtensionCmdSet" id="Disconnect" priority="0x0100" type="Button">
+        <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
+        <Icon guid="guidImages" id="bmpPic1" />
+        <Strings>
+          <ButtonText>Disconnect from TRIK</ButtonText>
+        </Strings>
+      </Button>
+      
+      <!--Upload Button-->
+      <Button guid="guidUpload_ExtensionCmdSet" id="UploadToTarget" priority="0x0100" type="Button">
+        <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
+        <Icon guid="guidImages" id="bmpPicSearch" />
         <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
           <ButtonText>Upload to TRIK</ButtonText>
         </Strings>
       </Button>
       
-      
-
-      <Button guid="guidUpload_ExtensionCmdSet" id="UploadToTrik" priority="0x0100" type="Button">
-        <Parent guid="guidUpload_ExtensionCmdSet" id="MyMenuGroup" />
+      <!--Run Application Button-->
+      <Button guid="guidUpload_ExtensionCmdSet" id="RunOnTarget" priority="0x0100" type="Button">
+        <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
-          <ButtonText>Upload to TRIK</ButtonText>
+          <ButtonText>Run app on TRIK</ButtonText>
+        </Strings>
+      </Button>
+      
+      <!--Stop Evaluation Button-->
+      <Button guid="guidUpload_ExtensionCmdSet" id="StopEvaluating" priority="0x0100" type="Button">
+        <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
+        <Icon guid="guidImages" id="bmpPicSearch" />
+        <Strings>
+          <ButtonText>Stop Evaluating</ButtonText>
         </Strings>
       </Button>
 
     </Buttons>
-  
+
+
+    <Combos>
+      <Combo guid="guidUpload_ExtensionCmdSet"
+             id="TargetIP"
+             priority="0x0100" type="DropDownCombo"
+             idCommandList="GetIPList"
+             defaultWidth="120">
+        <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
+        <CommandFlag>CommandWellOnly</CommandFlag>
+        <Strings>
+          <CommandName>TRIK IP</CommandName>
+          <ButtonText>Enter IP</ButtonText>
+        </Strings>
+      </Combo>
+    </Combos>
+    
     
     <Bitmaps>
       
       <Bitmap guid="guidImages" href="Resources\Images.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows"/>
+      <Bitmap guid="guidImages2" href="Resources\Connect.png" usedList="bmpConnect"/>
       
     </Bitmaps>
 
@@ -66,7 +121,7 @@
 
   
   <KeyBindings>
-    <KeyBinding guid="guidUpload_ExtensionCmdSet" id="UploadToTrik" editor="guidVSStd97" key1="B" mod1="ALT SHIFT CONTROL" />
+    <KeyBinding guid="guidUpload_ExtensionCmdSet" id="ConnectToTarget" editor="guidVSStd97" key1="B" mod1="ALT SHIFT CONTROL" />
   </KeyBindings>
   
   
@@ -74,13 +129,26 @@
     
     <GuidSymbol name="guidUpload_ExtensionPkg" value="{cc3f99c8-ffac-4cf9-8b9d-71a68baf8fbe}" />
     <GuidSymbol name="guidUpload_ExtensionCmdSet" value="{22fbb7ff-b0a9-47e1-bf8e-fa85d9138417}">
-
+  
+      <!--Menu symbols-->
       <IDSymbol name="MyMenuGroup" value="0x1020" />
-      <IDSymbol name="UploadToTrik" value="0x0100" />
-      
-      <IDSymbol name="Toolbar" value="0x1000" />
+
+      <!--Toolbar symbols-->
       <IDSymbol name="ToolbarGroup" value="0x1050" />
-      
+      <IDSymbol name="Toolbar" value="0x1000" />
+
+      <!--Buttons-->
+      <IDSymbol name="ConnectToTarget"   value="0x300" />
+      <IDSymbol name="ReconnectToTarget" value="0x301" />
+      <IDSymbol name="Disconnect"        value="0x302" />
+      <IDSymbol name="UploadToTarget"    value="0x303" />
+      <IDSymbol name="RunOnTarget"       value="0x304" />
+      <IDSymbol name="StopEvaluating"    value="0x305" />
+      <!--Drop Down list-->
+      <IDSymbol name="GetIPList"       value="0x200"/>
+      <IDSymbol name="TargetIP"        value="0x201"/>
+
+
     </GuidSymbol>
     
       
@@ -92,6 +160,12 @@
       <IDSymbol name="bmpPicArrows" value="5" />
       <IDSymbol name="bmpPicStrikethrough" value="6" />
     
+    </GuidSymbol>
+
+    <GuidSymbol name="guidImages2" value="{0463CF3D-7677-403F-8C41-0D6167FFD681}" >
+      <IDSymbol name="bmpConnect" value="1" />
+
+
     </GuidSymbol>
   </Symbols>
 

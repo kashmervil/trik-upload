@@ -59,7 +59,6 @@
     <Compile Include="MenuItemTest.cs" />
     <!---->
     <!---->
-    <Compile Include="ToolWindowTest.cs" />
     <!---->
     <!---->
     <Compile Include="PackageTest.cs" />
