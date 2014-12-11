@@ -51,18 +51,6 @@ namespace Trik.Upload_Extension
             Debug.WriteLine("Entering constructor for: {0}", ToString());
         }
 
-        private void ShowToolWindow(object sender, EventArgs e)
-        {
-            var window = FindToolWindow(typeof(MyToolWindow), 0, true);
-            if ((null == window) || (null == window.Frame))
-            {
-                throw new NotSupportedException(Resources.CanNotCreateWindow);
-            }
-            var windowFrame = (IVsWindowFrame)window.Frame;
-            ErrorHandler.ThrowOnFailure(windowFrame.Show());
-        }
-
-
         /////////////////////////////////////////////////////////////////////////////
         // Overridden Package Implementation
         #region Package Members
@@ -76,13 +64,16 @@ namespace Trik.Upload_Extension
             
             // Add our command handlers for menu (commands must exist in the .vsct file)
             var mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
-            if ( null != mcs )
-            {
-                // Create the command for the menu item.
-                var menuCommandId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.ConnectToTarget);
-                var menuItem = new MenuCommand(MenuItemCallback, menuCommandId );
-                mcs.AddCommand( menuItem );
-            }
+            if (null == mcs) return;
+            // Create the command for the menu item.
+            var connectId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.ConnectToTarget);
+            var connectItem = new MenuCommand(MenuItemCallback, connectId );
+            mcs.AddCommand(connectItem);
+                
+            var uploadId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.UploadToTarget);
+            var uploadItem = new MenuCommand(UploadToTrik_Click, uploadId);
+            uploadItem.Enabled = false;
+            mcs.AddCommand(uploadItem);
         }
         #endregion
 
@@ -162,7 +153,7 @@ namespace Trik.Upload_Extension
             WindowPane.OutputStringThreadSafe(Encoding.UTF8.GetString(e.Data));
         }
 
-        void UploadToTrik_Click(object sender, RoutedEventArgs e)
+        void UploadToTrik_Click(object sender, EventArgs e)
         {
             if (Uploader == null) return;
 
