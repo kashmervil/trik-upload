@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Renci.SshNet;
 using System.IO;
 using System.Timers;
@@ -54,36 +55,50 @@ namespace Trik.Upload_Extension
             _shellWriterStream = new StreamWriter(_shellStream) { AutoFlush = true };
             _timer.Elapsed += KeepAlive;
         }
-        public void UploadActiveProject()
+        public async Task<string> AsyncUploadActiveProject()
         {
-            var activeProject = SolutionManager.ActiveProject;
-            if (activeProject == null)
-                throw new InvalidOperationException("Calling UploadActiveProject before setting ActiveProject property");
-            if (activeProject.UploadedFiles.Count == 0)
+            return await Task.Run(() => //TODO: Remove this ***
             {
-                _sshClient.RunCommand("mkdir " + activeProject.FilesUploadPath + "; " + activeProject.Script);
-                _scpClient.Upload(new FileInfo(_libconwrapPath),
-                    activeProject.FilesUploadPath + Path.GetFileName(_libconwrapPath));
-            }
-
-            var newFiles = Directory.GetFiles(SolutionManager.ActiveProject.ProjectLocalBuildPath);
-            var uploadedFiles = SolutionManager.ActiveProject.UploadedFiles;
-            foreach (var file in newFiles)
-            {
-                if (!uploadedFiles.ContainsKey(file))
+                var error = "";
+                var activeProject = SolutionManager.ActiveProject;
+                if (activeProject == null)
+                    throw new InvalidOperationException(
+                        "Calling AsyncUploadActiveProject before setting ActiveProject property");
+                try
                 {
-                        uploadedFiles.Add(file, DateTime.MinValue);
+
+                    if (activeProject.UploadedFiles.Count == 0)
+                    {
+                        _sshClient.RunCommand("mkdir " + activeProject.FilesUploadPath + "; " + activeProject.Script);
+                        _scpClient.Upload(new FileInfo(_libconwrapPath),
+                            activeProject.FilesUploadPath + Path.GetFileName(_libconwrapPath));
+                    }
+
+                    var newFiles = Directory.GetFiles(SolutionManager.ActiveProject.ProjectLocalBuildPath);
+                    var uploadedFiles = SolutionManager.ActiveProject.UploadedFiles;
+                    foreach (var file in newFiles)
+                    {
+                        if (!uploadedFiles.ContainsKey(file))
+                        {
+                            uploadedFiles.Add(file, DateTime.MinValue);
+                        }
+                        var info = new FileInfo(file);
+                        if (info.LastWriteTime <= uploadedFiles[file]) continue;
+                        _scpClient.Upload(info, SolutionManager.ActiveProject.FilesUploadPath + Path.GetFileName(file));
+                        uploadedFiles[file] = info.LastWriteTime;
+                    }
                 }
-                var info = new FileInfo(file);
-                if (info.LastWriteTime <= uploadedFiles[file]) continue;
-                _scpClient.Upload(info, SolutionManager.ActiveProject.FilesUploadPath + Path.GetFileName(file));
-                uploadedFiles[file] = info.LastWriteTime;
-            }
+                catch (Exception exception)
+                {
+                    error = exception.Message;
+                }
+                return error;
+            });
         }
 
         public ShellStream RunProgram()
         {
-            _shellWriterStream.WriteLine("." + SolutionManager.ActiveProject.RemoteScriptName);    
+            _shellWriterStream.WriteLine("sh " + SolutionManager.ActiveProject.RemoteScriptName);    
             return _shellStream;
         }
 

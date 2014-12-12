@@ -1,20 +1,15 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
 using System.Text;
 using System.Threading;
-using System.Windows;
-using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell;
 using EnvDTE;
 using EnvDTE80;
-using Thread = System.Threading.Thread;
-using Timer = System.Threading.Timer;
+using Tasks = System.Threading.Tasks;
 
 namespace Trik.Upload_Extension
 {
@@ -30,21 +25,17 @@ namespace Trik.Upload_Extension
     public sealed class UploadExtensionPackage : Package
     {
         private Uploader Uploader { get; set; }
-        private Window1 _connectionWindow;
 #if DEBUG 
         private string _ip = "10.0.40.125";
 #else   
         private string _ip = "192.168.1.1";
 #endif
-        private bool _isFirstUpload = true;
-        private bool _isTrikAplicationRunning;
+
+        private UploadToolbar _uploadToolbar;
+        private IDE _visualStudio;
+
         private bool _isFirstRun = true;
 
-        //Visual Studio communication constants 
-        private bool _isProgressRunning;
-        private uint _statusbarCookie;
-        private IVsStatusbar _statusbar;
-        private IVsOutputWindowPane _pane;
 
         public UploadExtensionPackage()
         {
@@ -57,66 +48,60 @@ namespace Trik.Upload_Extension
 
         protected override void Initialize()
         {
-            //var dte = (DTE2)GetService(typeof(DTE));
-            
-            Debug.WriteLine ("Entering Initialize() of: {0}", ToString());
             base.Initialize();
             
-            // Add our command handlers for menu (commands must exist in the .vsct file)
             var mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
             if (null == mcs) return;
-            // Create the command for the menu item.
+
+            //Toolbar initialization
+            _uploadToolbar = new UploadToolbar();
+
             var connectId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.ConnectToTarget);
-            var connectItem = new MenuCommand(MenuItemCallback, connectId );
-            mcs.AddCommand(connectItem);
+            _uploadToolbar.Connect = new MenuCommand(ConnectToTargetCallback, connectId);
+            mcs.AddCommand(_uploadToolbar.Connect);
                 
+            var reconnectId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.ReconnectToTarget);
+            _uploadToolbar.Reconnect = new MenuCommand(Reconnect, reconnectId){Enabled = true};
+            mcs.AddCommand(_uploadToolbar.Reconnect);
+
+            var disconnectId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.Disconnect);
+            _uploadToolbar.Disconnect = new MenuCommand(UploadToTargetCallback, disconnectId) {Enabled = false};
+            mcs.AddCommand(_uploadToolbar.Disconnect);
+
             var uploadId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.UploadToTarget);
-            var uploadItem = new MenuCommand(UploadToTrik_Click, uploadId);
-            uploadItem.Enabled = false;
-            mcs.AddCommand(uploadItem);
+            _uploadToolbar.Upload = new MenuCommand(UploadToTargetCallback, uploadId){Enabled = false};
+            mcs.AddCommand(_uploadToolbar.Upload);
+
+            var runProgramId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.RunOnTarget);
+            _uploadToolbar.RunProgram = new MenuCommand(RunProgramCallback, runProgramId){Enabled = false};
+            mcs.AddCommand(_uploadToolbar.RunProgram);
+
+            var stopProgramId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.StopEvaluating);
+            _uploadToolbar.StopProgram = new MenuCommand(UploadToTargetCallback, stopProgramId) { Enabled = false };
+            mcs.AddCommand(_uploadToolbar.StopProgram);
+
+            //Visual Studio wrapper class initialization
+            var statusbar = GetService(typeof (SVsStatusbar)) as IVsStatusbar;
+            var pane = GetService(typeof (SVsGeneralOutputWindowPane)) as IVsOutputWindowPane;
+            if (statusbar == null || pane == null) return;
+            _visualStudio = new IDE(SynchronizationContext.Current, statusbar, pane);
+
+            _visualStudio.WindowPane.SetName("TRIK-Controller");
         }
         #endregion
 
-        /// <summary>
-        /// This function is the callback used to execute a command when the a menu item is clicked.
-        /// See the Initialize method to see how the menu item is associated to this function using
-        /// the OleMenuCommandService service and the MenuCommand class.
-        /// </summary>
-        private void MenuItemCallback(object sender, EventArgs e)
+
+        private void RunProgramCallback(object sender, EventArgs e)
         {
-            _connectionWindow = new Window1 {IpAddress = {Text = _ip}};
-            if (null == Uploader)
-            {
-                _connectionWindow.UploadToTrik.IsEnabled = false;
-                _connectionWindow.RunProgram.IsEnabled = false;
-            }
-
-            _connectionWindow.ConnectToTrik.Click += ConnectToTrik_Click;
-            _connectionWindow.UploadToTrik.Click += UploadToTrik_Click;
-            _connectionWindow.RunProgram.Click += RunProgram_Click;
-            WindowPane.SetName("TRIK-Controller");
-            _connectionWindow.ShowModal();
-
-        }
-
-        private void RunProgram_Click(object sender, RoutedEventArgs e)
-        {
-            if (_isTrikAplicationRunning) return;
-            _isTrikAplicationRunning = true;
-            //ReportProgress(10000, "Starting an application on a controller");
-            var scnt = SynchronizationContext.Current;
-            _connectionWindow.Close();
+            //_visualStudio.Statusbar.Progress(10000, "Starting an application on a controller");
             
-            //WindowPane.Hide();
-            WindowPane.Clear();
-            WindowPane.Activate();
-            WindowPane.FlushToTaskList();
-            WindowPane.OutputString("========== Starting an Application on TRIK ==========\n");
 
-            System.Threading.Tasks.Task.Run(() =>
+            _visualStudio.WindowPane.AppendText("========== Starting an Application on TRIK ==========\n");
+
+            Tasks.Task.Run(() =>
             {
-                StopProgress();
-                StatusBar.SetText("Running application on TRIK. See output pane for more information");
+                _visualStudio.Statusbar.StopProgress();
+                _visualStudio.Statusbar.SetText("Running application on TRIK. See output pane for more information");
                 try
                 {
                     var programOutput = Uploader.RunProgram();
@@ -126,251 +111,133 @@ namespace Trik.Upload_Extension
                     programOutput.DataReceived += programOutput_DataReceived;
                     _isFirstRun = false;
 
-                    //WindowPane.OutputStringThreadSafe(programOutput + "\n");
-                    }
+                    //_visualStudio.WindowPane.AppendTextThreadSafe(programOutput + "\n");
+                }
                 catch (Exception exception)
                 {
-                    scnt.Post(x =>
-                    {
-                        _connectionWindow.MessageLabel.Content =
-                            "Network error occurred while running an application. Trying to reconnect";
-                        _connectionWindow.RunProgram.IsEnabled = false;
-                        _connectionWindow.UploadToTrik.IsEnabled = false;
-                    }, null);
-                    WindowPane.OutputString(exception.Message);
+                    _visualStudio.Statusbar.SetText("Network error occurred while running an application. Trying to reconnect");
+                    _uploadToolbar.RunProgram.Enabled = false;
+                    _uploadToolbar.Upload.Enabled = false;
+                    _visualStudio.WindowPane.AppendText(exception.Message);
 
-                    Reconnect(scnt);
-                }
-                finally
-                {
-                    _isTrikAplicationRunning = false;
+                    Reconnect();
                 }
             });
         }
 
         void programOutput_DataReceived(object sender, Renci.SshNet.Common.ShellDataEventArgs e)
         {
-            WindowPane.OutputStringThreadSafe(Encoding.UTF8.GetString(e.Data));
+            _visualStudio.WindowPane.AppendText(Encoding.UTF8.GetString(e.Data));
         }
 
-        void UploadToTrik_Click(object sender, EventArgs e)
+        async void UploadToTargetCallback(object sender, EventArgs e)
         {
-            if (Uploader == null) return;
+            //if (Uploader == null) return;
 
-            _connectionWindow.MessageLabel.Content = "Uploading...";
-            StatusBar.SetText("Uploading...");
-            _connectionWindow.UploadToTrik.IsEnabled = false;
-            _connectionWindow.RunProgram.IsEnabled = false;
+            _visualStudio.Statusbar.SetText("Uploading...");
+            _uploadToolbar.Upload.Enabled = false;
+            _uploadToolbar.RunProgram.Enabled = false;
             var dte = (DTE2)GetService(typeof(DTE));
             var buildConfiguration = dte.Solution.SolutionBuild.ActiveConfiguration.Name;
 
             if ("Release" != buildConfiguration)
             {
                 const string message = "Use Release build for better performance";
-                _connectionWindow.MessageLabel.Content = message;
-                StatusBar.SetText(message);
-                _connectionWindow.UploadToTrik.IsEnabled = true;
+                _visualStudio.WindowPane.AppendText(message);
+                _visualStudio.Statusbar.SetText(message);
+                _uploadToolbar.Upload.Enabled = true;
                 return;
             }
 
-            var scnt = SynchronizationContext.Current;
-            System.Threading.Tasks.Task.Run(() =>
+            var projects = _visualStudio.GetSolutionProjects(dte.Solution);               
+            await Tasks.Task.Run(() => Uploader.SolutionManager.UpdateProjects(projects));
+            _visualStudio.Statusbar.Progress(8000, "Uploading");
+            var error = await Uploader.AsyncUploadActiveProject();
+            _visualStudio.Statusbar.StopProgress();
+            if (error.Length != 0)
             {
-                var projects = GetSolutionProjects(dte.Solution);               
-                Uploader.SolutionManager.UpdateProjects(projects);
-
-                try
-                { 
-                    ReportProgress(8000, "Uploading");
-                    Uploader.UploadActiveProject();
-                    scnt.Post(x =>
-                    {
-                        _connectionWindow.MessageLabel.Content = "Uploaded!";
-                        //connectionWindow.UploadToTrik.IsEnabled = true;
-                        _connectionWindow.Close();
-                    }, null);
-                    StopProgress();
-                    StatusBar.SetText("Uploaded!");
-                }
-                catch (Exception)
-                {
-                    StopProgress();
-                    scnt.Post(x =>
-                    {
-                        _connectionWindow.MessageLabel.Content = "Error is occurred. Trying to reconnect...";
-                    }, null);
-                    //StatusBar.SetText("Error is occurred. Trying to reconnect...");
-                    Reconnect(scnt);
-
-                }                
-            });
+                _visualStudio.WindowPane.SetText(error + "/n/n/ Trying to reconnect...");
+                Reconnect();
+            }
+            else
+            {
+                _visualStudio.Statusbar.SetText("Uploaded!");
+                _uploadToolbar.RunProgram.Enabled = true;
+                _uploadToolbar.Upload.Enabled = true;
+            }
         }
 
-        void ConnectToTrik_Click(object sender, RoutedEventArgs e)
+        async void ConnectToTargetCallback(object sender, EventArgs e)
         {
-            if (_ip == _connectionWindow.IpAddress.Text && !_isFirstUpload)
-            {
-                _connectionWindow.MessageLabel.Content = "Already connected to this host!";
-                StatusBar.SetText("Already connected to this host!");
-                return;
-            }
-            _connectionWindow.ConnectToTrik.IsEnabled = false;
-            _connectionWindow.RunProgram.IsEnabled = false;
+            //if (_ip == _connectionWindow.IpAddress.Text && !_isFirstUpload)
+            //{
+            //    _visualStudio.StatusbarImpl = "Already connected to this host!";
+            //    return;
+            //}
+            _uploadToolbar.Connect.Enabled = false;
+            //_uploadToolbar.RunProgram.Enabled = false;
 
-            _connectionWindow.MessageLabel.Content = "Connecting...";
-            _ip = _connectionWindow.IpAddress.Text;
-            var scnt = SynchronizationContext.Current;
-            _connectionWindow.UploadToTrik.IsEnabled = false;
-            System.Threading.Tasks.Task.Run(() =>
+            _visualStudio.Statusbar.SetText("Connecting...");
+            //_ip = 1connectionWindow.IpAddress.Text;
+            _uploadToolbar.Upload.Enabled = false;
+            //Tasks.Task.Run(() =>
             {
                 const int dueTime = 11000; //Usual time is taken for connection with a controller
                 const string message = "A connection is taking longer than usual";
-                var timeoutTimer = new Timer(x =>
-                {
-                    StatusBar.SetText(message);
-                    scnt.Post(y =>
-                    {
-                        _connectionWindow.MessageLabel.Content = message;
-                    }, null);
-                }, null, dueTime, -1);
+                var timeoutTimer = new Timer(x => _visualStudio.Statusbar.SetText(message), null, dueTime, -1);
 
-                ReportProgress(dueTime, "Connecting");
+                _visualStudio.Statusbar.Progress(dueTime, "Connecting");
 
                 try
                 {
-                    Uploader = new Uploader(_ip);
-                    scnt.Post(x =>
-                    {
-                        _connectionWindow.MessageLabel.Content = "Connected!";
-                        _connectionWindow.UploadToTrik.IsEnabled = true;
-                        _isFirstUpload = false;
+                    Uploader = await Tasks.Task.Run(() => new Uploader(_ip));
+                    _visualStudio.Statusbar.StopProgress();
+                    _visualStudio.Statusbar.SetText("Connected!");
+                    _uploadToolbar.Upload.Enabled = true;
 
-                    }
-                    , null);
                     var dte = (DTE2)GetService(typeof(DTE));
                     var solution = dte.Solution;
-                    Uploader.SolutionManager = new SolutionManager(solution.FullName, GetSolutionProjects(solution.Projects));
+                    Uploader.SolutionManager = new SolutionManager(solution.FullName, _visualStudio.GetSolutionProjects(solution.Projects));
                     Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects.First();
-                    StopProgress();
-                    StatusBar.SetText("Connected!");
                 }
                 catch (Exception exeption)
                 {
-                    StopProgress();
-                    StatusBar.SetText("Connection attempt failed. See Output pane for details");
-                    WindowPane.Clear();
-                    WindowPane.Activate();
-                    WindowPane.OutputString(exeption.Message);
-                    scnt.Post(x => _connectionWindow.MessageLabel.Content = "Connection attempt failed", null);
+                    _visualStudio.Statusbar.StopProgress();
+                    _visualStudio.Statusbar.SetText("Connection attempt failed. See Output pane for details");
+                    _visualStudio.WindowPane.SetText(exeption.Message);
                 }
                 finally
                 {
-                    scnt.Post(x => _connectionWindow.ConnectToTrik.IsEnabled = true , null);
+                    //_uploadToolbar.Connect.Enabled = true;
                     timeoutTimer.Dispose();
+                    _visualStudio.Statusbar.StopProgress();
                 }
-            });
+            }
         }
 
-        private void ReportProgress(int period, String message)
+        private void Reconnect(object sender, EventArgs eventArgs)
         {
-            
-            StopProgress();
-            _isProgressRunning = true;
-            
-            System.Threading.Tasks.Task.Run(() =>
-            {
-                StatusBar.SetText("");
-                var messageTail = "";
-                const int iterations = 10;
-                while (_isProgressRunning)
-                {
-                    for (var i = (uint) 0; i < iterations; i++)
-                    {
-                        StatusBar.Progress(ref _statusbarCookie, _isProgressRunning?1:0, message + messageTail, i, iterations);
-                        messageTail = "." + ((messageTail.Length < 3) ? messageTail : "");
-                        Thread.Sleep(period/iterations);
-                    }
-                }
-            });
+            Reconnect();
         }
-        private void Reconnect(SynchronizationContext scnt)
+
+        private void Reconnect()
         {
             try
             {
-                ReportProgress(8000, "Network error is occurred. Trying to reconnect");
+                _visualStudio.Statusbar.Progress(8000, "Network error is occurred. Trying to reconnect");
                 Uploader.Reconnect();
-                StopProgress();
-                StatusBar.SetText("Connected!");
-                scnt.Post(x =>
-                {
-                    _connectionWindow.MessageLabel.Content = "Connected!";
-                    _connectionWindow.UploadToTrik.IsEnabled = true;
-                    _isFirstUpload = false;
-                }
-                    , null);
+                _visualStudio.Statusbar.StopProgress();
+                _visualStudio.Statusbar.SetText("Connected!");
+                _uploadToolbar.Upload.Enabled = true;
             }
             catch (Exception)
             {
-                StopProgress();
+                _visualStudio.Statusbar.StopProgress();
                 const string message = "Can't connect to TRIK. Check connection and try again";
-                StatusBar.SetText(message);
-                scnt.Post(x =>
-                {
-                    _connectionWindow.MessageLabel.Content = message;
-                    _connectionWindow.UploadToTrik.IsEnabled = true;
-                    _isFirstUpload = false;
-                }
-                    , null);
+                _visualStudio.Statusbar.SetText(message);
+                _uploadToolbar.Upload.Enabled = true;
                 Uploader = null;
-                _isFirstUpload = true;
             }
-        }
-
-        private static List<string> GetSolutionProjects(IEnumerable solution)
-        {
-            var list = new List<string>();
-            foreach (var project in solution.OfType<Project>())
-            {
-                if (project.Kind == ProjectKinds.vsProjectKindSolutionFolder)
-                    list.AddRange(GetSolutionFolderProjects(project));
-                else 
-                    list.Add(project.FullName);
-            }
-            return list.Where(x => !String.IsNullOrWhiteSpace(x)).ToList();
-            //{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC} -- C#
-            //{f2a71f9b-5d33-465a-a702-920d77279786} -- F#
-        }
-
-        private static List<string> GetSolutionFolderProjects(Project projectFolder)
-        {
-            var list = new List<string>();
-            foreach (var project in projectFolder.ProjectItems.OfType<ProjectItem>()
-                                    .Select(item => item.SubProject)
-                                    .Where(project => project != null))
-            {
-                if (project.Kind == ProjectKinds.vsProjectKindSolutionFolder)
-                    list.AddRange(GetSolutionFolderProjects(project));
-                else
-                {
-                    list.Add(project.FullName);
-                }
-            }
-            return list;
-        }
-
-        private void StopProgress()
-        {
-            _isProgressRunning = false;
-            StatusBar.Progress(ref _statusbarCookie, 0, "", 0, 0);
-        }
-
-        private IVsStatusbar StatusBar
-        {
-            get { return _statusbar ?? (_statusbar = GetService(typeof (SVsStatusbar)) as IVsStatusbar); }
-        }
-        private IVsOutputWindowPane WindowPane
-        {
-            get { return _pane ?? (_pane = GetService(typeof (SVsGeneralOutputWindowPane)) as IVsOutputWindowPane); }
         }
     }
 }
