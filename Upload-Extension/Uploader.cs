@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Renci.SshNet;
 using System.IO;
@@ -16,7 +17,8 @@ namespace Trik.Upload_Extension
         private StreamWriter _shellWriterStream;
         readonly Timer _timer = new Timer(5000.0);
         private readonly string _libconwrapPath;
-        
+        private EventHandler<Renci.SshNet.Common.ShellDataEventArgs> _shellStreamHandler;
+
         public Uploader(string ip)
         {
             _scpClient = new ScpClient(ip, "root", "");
@@ -96,10 +98,20 @@ namespace Trik.Upload_Extension
             });
         }
 
-        public ShellStream RunProgram()
+        public void RunProgram()
         {
-            _shellWriterStream.WriteLine("sh " + SolutionManager.ActiveProject.RemoteScriptName);    
-            return _shellStream;
+            _shellStream.DataReceived -= _shellStreamHandler;
+            _shellWriterStream.WriteLine("sh " + SolutionManager.ActiveProject.RemoteScriptName);
+            _shellStream.DataReceived += _shellStreamHandler;
+        }
+
+        public Action<string> OutputAction
+        {
+            set
+            {
+                _shellStream.DataReceived -= _shellStreamHandler;
+                _shellStreamHandler = (sender, args) => value(Encoding.UTF8.GetString(args.Data));
+            }
         }
 
         public void StopProgram()
