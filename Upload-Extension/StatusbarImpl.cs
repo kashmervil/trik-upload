@@ -9,21 +9,19 @@ namespace Trik.Upload_Extension
     internal class StatusbarImpl
     {
         private readonly IVsStatusbar _statusbar;
-        private readonly SynchronizationContext _context;
         private CancellationTokenSource _cancellationTokenSource;
         private uint _statusbarCookie;
         private BackgroundWorker _worker;
-        private AutoResetEvent _resetEvent = new AutoResetEvent(false);
+        private readonly AutoResetEvent _resetEvent = new AutoResetEvent(false);
 
-        internal StatusbarImpl(SynchronizationContext context, IVsStatusbar statusbar)
+        internal StatusbarImpl(IVsStatusbar statusbar)
         {
             _statusbar = statusbar;
-            _context = context;
             _cancellationTokenSource = new CancellationTokenSource();
         }
         internal void SetText(string text)
         {
-            _context.Post( x => _statusbar.SetText(text), null);//TODO: remove context
+            _statusbar.SetText(text);
         }
 
         internal void Progress(int period, string text)

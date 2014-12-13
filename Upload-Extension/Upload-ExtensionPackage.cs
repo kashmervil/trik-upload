@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
-using System.Threading;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell;
 using EnvDTE;
@@ -74,16 +73,22 @@ namespace Trik.Upload_Extension
             mcs.AddCommand(_uploadToolbar.RunProgram);
 
             var stopProgramId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int) PkgCmdIDList.StopEvaluating);
-            _uploadToolbar.StopProgram = new MenuCommand(UploadToTargetCallback, stopProgramId) {Enabled = false};
+            _uploadToolbar.StopProgram = new MenuCommand(StopProgramCallback, stopProgramId) {Enabled = false};
             mcs.AddCommand(_uploadToolbar.StopProgram);
 
             //Visual Studio wrapper class initialization
             var statusbar = GetService(typeof (SVsStatusbar)) as IVsStatusbar;
             var pane = GetService(typeof (SVsGeneralOutputWindowPane)) as IVsOutputWindowPane;
             if (statusbar == null || pane == null) return;
-            _visualStudio = new IDE(SynchronizationContext.Current, statusbar, pane);
+            _visualStudio = new IDE(statusbar, pane);
 
             _visualStudio.WindowPane.SetName("TRIK-Controller");
+        }
+
+        private void StopProgramCallback(object sender, EventArgs e)
+        {
+            _visualStudio.WindowPane.SetText("========== Killing TRIK application ==========\n");
+            Uploader.StopProgram();
         }
 
         #endregion

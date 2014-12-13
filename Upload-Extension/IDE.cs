@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -11,14 +10,12 @@ namespace Trik.Upload_Extension
 {
     internal class IDE
     {
-        public IDE(SynchronizationContext context, IVsStatusbar statusbar, IVsOutputWindowPane pane)
+        public IDE(IVsStatusbar statusbar, IVsOutputWindowPane pane)
         {
-            Statusbar = new StatusbarImpl(context, statusbar);
-            WindowPane = new WindowPaneImpl(context, pane);
+            Statusbar = new StatusbarImpl(statusbar);
+            WindowPane = new WindowPaneImpl(pane);
         }
-
         public WindowPaneImpl WindowPane;
-
         public StatusbarImpl Statusbar;
 
         public List<string> GetSolutionProjects(IEnumerable solution)
