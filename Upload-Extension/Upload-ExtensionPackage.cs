@@ -115,11 +115,9 @@ namespace Trik.Upload_Extension
 
         private async void UploadToTargetCallback(object sender, EventArgs e)
         {
-            //if (Uploader == null) return;
-
             _visualStudio.Statusbar.SetText("Uploading...");
             _uploadToolbar.Upload.Enabled = false;
-            //_uploadToolbar.RunProgram.Enabled = false;
+            _uploadToolbar.RunProgram.Enabled = false;
             var dte = (DTE2) GetService(typeof (DTE));
             var buildConfiguration = dte.Solution.SolutionBuild.ActiveConfiguration.Name;
 
@@ -131,9 +129,19 @@ namespace Trik.Upload_Extension
                 _uploadToolbar.Upload.Enabled = true;
                 return;
             }
-
-            var projects = _visualStudio.GetSolutionProjects(dte.Solution);
-            await Tasks.Task.Run(() => Uploader.SolutionManager.UpdateProjects(projects));
+            if (Uploader.SolutionManager == null ||
+                Uploader.SolutionManager.FullName != dte.Solution.FullName)
+            {
+                var solution = dte.Solution;
+                Uploader.SolutionManager = new SolutionManager(solution.FullName,
+                    _visualStudio.GetSolutionProjects(solution.Projects));
+                Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects.First();//TODO: replace with user choice
+            }
+            else
+            {
+                var projects = _visualStudio.GetSolutionProjects(dte.Solution);
+                await Tasks.Task.Run(() => Uploader.SolutionManager.UpdateProjects(projects));
+            }
             _visualStudio.Statusbar.Progress(8000, "Uploading");
             var error = await Uploader.AsyncUploadActiveProject();
             await Tasks.Task.Run(() => _visualStudio.Statusbar.StopProgress());
@@ -145,9 +153,11 @@ namespace Trik.Upload_Extension
             else
             {
                 _visualStudio.Statusbar.SetText("Uploaded!");
+                _visualStudio.WindowPane.SetText("Uploaded!");
                 _uploadToolbar.RunProgram.Enabled = true;
                 _uploadToolbar.Upload.Enabled = true;
             }
+
         }
 
         private async void ConnectToTargetCallback(object sender, EventArgs e)
@@ -184,11 +194,6 @@ namespace Trik.Upload_Extension
 
                 _visualStudio.Statusbar.SetText("Connected!");
                 _uploadToolbar.Upload.Enabled = true;
-                var dte = (DTE2) GetService(typeof (DTE));
-                var solution = dte.Solution;
-                Uploader.SolutionManager = new SolutionManager(solution.FullName,
-                    _visualStudio.GetSolutionProjects(solution.Projects));
-                Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects.First();
             }
         }
 

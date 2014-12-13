@@ -68,7 +68,6 @@ namespace Trik.Upload_Extension
                         "Calling AsyncUploadActiveProject before setting ActiveProject property");
                 try
                 {
-
                     if (activeProject.UploadedFiles.Count == 0)
                     {
                         _sshClient.RunCommand("mkdir " + activeProject.FilesUploadPath + "; " + activeProject.Script);
