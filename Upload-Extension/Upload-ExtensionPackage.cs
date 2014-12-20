@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
+using System.Windows.Forms;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell;
 using EnvDTE;
@@ -19,19 +22,17 @@ namespace Trik.Upload_Extension
     [ProvideMenuResource("Menus.ctmenu", 1)]
     // This attribute registers a tool window exposed by this package.
     //[ProvideToolWindow(typeof(MyToolWindow))]
-    [Guid(GuidList.guidUpload_ExtensionPkgString)]
+    [Guid(GuidList.GuidUploadExtensionPkgString)]
     public sealed class UploadExtensionPackage : Package
     {
         private Uploader Uploader { get; set; }
 #if DEBUG
-        private string _ip = "10.0.40.118";
+        private IList<string> _ips = new List<string>{"10.0.40.118", "*Enter new TRIK IP"};
 #else   
-        private string _ip = "192.168.1.1";
+        private IList<string> _ips = new List<string>{"192.168.1.1", "*Enter new TRIK IP"};
 #endif
-
         private UploadToolbar _uploadToolbar;
         private IDE _visualStudio;
-
         public UploadExtensionPackage()
         {
             Debug.WriteLine("Entering constructor for: {0}", ToString());
@@ -52,34 +53,42 @@ namespace Trik.Upload_Extension
             //Toolbar initialization
             _uploadToolbar = new UploadToolbar();
 
-            var connectId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int) PkgCmdIDList.ConnectToTarget);
-            _uploadToolbar.Connect = new MenuCommand(ConnectToTargetCallback, connectId);
+            var connectId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int) PkgCmdIDList.ConnectToTarget);
+            _uploadToolbar.Connect = new MenuCommand(NotImplemeted, connectId);
             mcs.AddCommand(_uploadToolbar.Connect);
 
-            var reconnectId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int) PkgCmdIDList.ReconnectToTarget);
+            var reconnectId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int) PkgCmdIDList.ReconnectToTarget);
             _uploadToolbar.Reconnect = new MenuCommand(Reconnect, reconnectId) {Enabled = true};
             mcs.AddCommand(_uploadToolbar.Reconnect);
 
-            var disconnectId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int) PkgCmdIDList.Disconnect);
+            var disconnectId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int) PkgCmdIDList.Disconnect);
             _uploadToolbar.Disconnect = new MenuCommand(UploadToTargetCallback, disconnectId) {Enabled = false};
             mcs.AddCommand(_uploadToolbar.Disconnect);
 
-            var uploadId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int) PkgCmdIDList.UploadToTarget);
+            var uploadId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int) PkgCmdIDList.UploadToTarget);
             _uploadToolbar.Upload = new MenuCommand(UploadToTargetCallback, uploadId) {Enabled = false};
             mcs.AddCommand(_uploadToolbar.Upload);
 
-            var runProgramId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int) PkgCmdIDList.RunOnTarget);
+            var runProgramId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int) PkgCmdIDList.RunOnTarget);
             _uploadToolbar.RunProgram = new MenuCommand(RunProgramCallback, runProgramId) {Enabled = false};
             mcs.AddCommand(_uploadToolbar.RunProgram);
 
-            var stopProgramId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int) PkgCmdIDList.StopEvaluating);
+            var stopProgramId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int) PkgCmdIDList.StopEvaluating);
             _uploadToolbar.StopProgram = new MenuCommand(StopProgramCallback, stopProgramId) {Enabled = false};
             mcs.AddCommand(_uploadToolbar.StopProgram);
 
-            var propertiesId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.Properties);
-            _uploadToolbar.Properties = new MenuCommand(PropertiesCallback, propertiesId) { Enabled = false };
+            var propertiesId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int)PkgCmdIDList.Properties);
+            _uploadToolbar.Properties = new MenuCommand(PropertiesCallback, propertiesId) { Enabled = true };
             mcs.AddCommand(_uploadToolbar.Properties);
 
+            var comboBoxCommandId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int)PkgCmdIDList.TargetIp);
+            var comboBoxCommand = new OleMenuCommand(HandleInvokeCombo, comboBoxCommandId);
+            mcs.AddCommand(comboBoxCommand);
+
+            // This is the special command to get the list of drop down items
+            var comboBoxGetListCommandId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int)PkgCmdIDList.GetIpList);
+            var comboBoxGetListCommand = new OleMenuCommand(HandleInvokeComboGetList, comboBoxGetListCommandId);
+            mcs.AddCommand(comboBoxGetListCommand);
 
             //Visual Studio wrapper class initialization
             var statusbar = GetService(typeof (SVsStatusbar)) as IVsStatusbar;
@@ -90,9 +99,67 @@ namespace Trik.Upload_Extension
             _visualStudio.WindowPane.SetName("TRIK-Controller");
         }
 
-        private void PropertiesCallback(object sender, EventArgs e)
+        private void NotImplemeted(object sender, EventArgs e)
         {
             throw new NotImplementedException();
+        }
+
+        #endregion
+
+        private void HandleInvokeComboGetList(object sender, EventArgs e)
+        {
+            var args = e as OleMenuCmdEventArgs;
+            if (args == null) return;
+            if (args.OutValue != IntPtr.Zero)
+            {
+                Marshal.GetNativeVariantForObject(_ips.ToArray(), args.OutValue);
+            }
+        }
+
+        private void HandleInvokeCombo(object sender, EventArgs e)
+        {
+            var args = e as OleMenuCmdEventArgs;
+            if (args == null) return;
+            if (args.OutValue != IntPtr.Zero)
+            {
+                Marshal.GetNativeVariantForObject(_uploadToolbar.DropDownListMessage, args.OutValue);
+            }
+            else
+            {
+                var inValue = args.InValue as string;
+                if (inValue == null) return;
+                if (inValue != "*Enter new TRIK IP")
+                    _uploadToolbar.DropDownListMessage = inValue;
+                else
+                {
+                    var form = new Form();
+                    var textbox = new TextBox();
+                    form.Controls.Add(textbox);
+                    form.Closed += (o, eventArgs) =>
+                    {
+                        IPAddress ip;
+                        if (!IPAddress.TryParse(textbox.Text, out ip)) return;
+                        if (!_ips.Contains(ip.ToString())) _ips.Insert(_ips.Count - 1, ip.ToString());
+                        _uploadToolbar.DropDownListMessage = textbox.Text;
+                    };
+                    form.ShowDialog();
+                }
+                var newIp = _uploadToolbar.DropDownListMessage;
+                if (newIp == "Enter TRIK ip") return; //Early first case (DropDownListMessage hadn't been modified and input in a textbox was incorrect)
+                if (Uploader == null || Uploader.Ip != newIp)
+                    ConnectToTargetCallback(_uploadToolbar.DropDownListMessage);
+            }
+        }
+
+        private void PropertiesCallback(object sender, EventArgs e)
+        {
+            var projects = Uploader.SolutionManager.Projects.Select(x => x.ProjectName).ToList();
+            var form = new Form();
+            var list = new ComboBox();
+            list.Items.AddRange(projects.ToArray());
+            form.Controls.Add(list);
+            form.ShowDialog();
+            //list.
         }
 
         private void StopProgramCallback(object sender, EventArgs e)
@@ -101,7 +168,6 @@ namespace Trik.Upload_Extension
             Uploader.StopProgram();
         }
 
-        #endregion
 
 
         private void RunProgramCallback(object sender, EventArgs e)
@@ -175,23 +241,17 @@ namespace Trik.Upload_Extension
 
         }
 
-        private async void ConnectToTargetCallback(object sender, EventArgs e)
+        private async void ConnectToTargetCallback(string ip)
         {
-            //if (_ip == _connectionWindow.IpAddress.Text && !_isFirstUpload)
-            //{
-            //    _visualStudio.StatusbarImpl = "Already connected to this host!";
-            //    return;
-            //}
             _uploadToolbar.Connect.Enabled = false;
             _uploadToolbar.RunProgram.Enabled = false;
 
             _visualStudio.Statusbar.SetText("Connecting...");
-            //_ip = 1connectionWindow.IpAddress.Text;
             _uploadToolbar.Upload.Enabled = false;
             const int dueTime = 11000; //Usual time is taken for connection with a controller
             _visualStudio.Statusbar.Progress(dueTime, "Connecting");
             var error = "";
-            Uploader = new Uploader(_ip) { OutputAction = _visualStudio.WindowPane.AppendText };
+            Uploader = new Uploader(ip) { OutputAction = _visualStudio.WindowPane.AppendText };
             try
             {
                 await Uploader.ConnectAsync();

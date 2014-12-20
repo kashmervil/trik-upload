@@ -21,8 +21,9 @@ namespace Trik.Upload_Extension
 
         public Uploader(string ip)
         {
-            _scpClient = new ScpClient(ip, "root", "");
-            _sshClient = new SshClient(ip, "root", "");
+            Ip = ip;
+            _scpClient = new ScpClient(Ip, "root", "");
+            _sshClient = new SshClient(Ip, "root", "");
             var resources = Path.GetDirectoryName(typeof(Uploader).Assembly.Location);
             _libconwrapPath = resources + @"\Resources\libconWrap.so.1.0.0";
         }
@@ -69,21 +70,21 @@ namespace Trik.Upload_Extension
             return await Task.Run(() => //TODO: Remove this ***
             {
                 var error = "";
-                var activeProject = SolutionManager.ActiveProject;
-                if (activeProject == null)
+                var project = SolutionManager.ActiveProject;
+                if (project == null)
                     throw new InvalidOperationException(
                         "Calling UploadActiveProjectAsync before setting ActiveProject property");
                 try
                 {
-                    if (activeProject.UploadedFiles.Count == 0)
+                    if (project.UploadedFiles.Count == 0)
                     {
-                        _sshClient.RunCommand("mkdir " + activeProject.FilesUploadPath + "; " + activeProject.Script);
+                        _sshClient.RunCommand("mkdir " + project.FilesUploadPath + "; " + project.Script);
                         _scpClient.Upload(new FileInfo(_libconwrapPath),
-                            activeProject.FilesUploadPath + Path.GetFileName(_libconwrapPath));
+                            project.FilesUploadPath + Path.GetFileName(_libconwrapPath));
                     }
 
-                    var newFiles = Directory.GetFiles(SolutionManager.ActiveProject.ProjectLocalBuildPath);
-                    var uploadedFiles = SolutionManager.ActiveProject.UploadedFiles;
+                    var newFiles = Directory.GetFiles(project.ProjectLocalBuildPath);
+                    var uploadedFiles = project.UploadedFiles;
                     foreach (var file in newFiles)
                     {
                         if (!uploadedFiles.ContainsKey(file))
@@ -92,7 +93,7 @@ namespace Trik.Upload_Extension
                         }
                         var info = new FileInfo(file);
                         if (info.LastWriteTime <= uploadedFiles[file]) continue;
-                        _scpClient.Upload(info, SolutionManager.ActiveProject.FilesUploadPath + Path.GetFileName(file));
+                        _scpClient.Upload(info, project.FilesUploadPath + Path.GetFileName(file));
                         uploadedFiles[file] = info.LastWriteTime;
                     }
                 }
@@ -126,6 +127,7 @@ namespace Trik.Upload_Extension
             _sshClient.RunCommand("killall mono");
         }
 
+        public string Ip { get; private set; }
         public void Dispose()
         {
             _sshClient.Dispose();

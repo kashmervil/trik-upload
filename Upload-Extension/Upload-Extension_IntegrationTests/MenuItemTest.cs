@@ -42,7 +42,7 @@ namespace Upload_Extension_IntegrationTests
         {
             UIThreadInvoker.Invoke((ThreadInvoker)delegate()
             {
-                CommandID menuItemCmd = new CommandID(Trik.Upload_Extension.GuidList.guidUpload_ExtensionCmdSet, (int)Trik.Upload_Extension.PkgCmdIDList.ConnectToTarget);
+                CommandID menuItemCmd = new CommandID(Trik.Upload_Extension.GuidList.GuidUploadExtensionCmdSet, (int)Trik.Upload_Extension.PkgCmdIDList.ConnectToTarget);
 
                 // Create the DialogBoxListener Thread.
                 string expectedDialogBoxText = string.Format(CultureInfo.CurrentCulture, "{0}\n\nInside {1}.MenuItemCallback()", "Upload-Extension", "TRIK.Upload_Extension.Upload_ExtensionPackage");
