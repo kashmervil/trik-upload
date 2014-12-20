@@ -24,7 +24,7 @@ namespace Trik.Upload_Extension
     {
         private Uploader Uploader { get; set; }
 #if DEBUG
-        private string _ip = "10.0.40.125";
+        private string _ip = "10.0.40.118";
 #else   
         private string _ip = "192.168.1.1";
 #endif
@@ -76,6 +76,11 @@ namespace Trik.Upload_Extension
             _uploadToolbar.StopProgram = new MenuCommand(StopProgramCallback, stopProgramId) {Enabled = false};
             mcs.AddCommand(_uploadToolbar.StopProgram);
 
+            var propertiesId = new CommandID(GuidList.guidUpload_ExtensionCmdSet, (int)PkgCmdIDList.Properties);
+            _uploadToolbar.Properties = new MenuCommand(PropertiesCallback, propertiesId) { Enabled = false };
+            mcs.AddCommand(_uploadToolbar.Properties);
+
+
             //Visual Studio wrapper class initialization
             var statusbar = GetService(typeof (SVsStatusbar)) as IVsStatusbar;
             var pane = GetService(typeof (SVsGeneralOutputWindowPane)) as IVsOutputWindowPane;
@@ -83,6 +88,11 @@ namespace Trik.Upload_Extension
             _visualStudio = new IDE(statusbar, pane);
 
             _visualStudio.WindowPane.SetName("TRIK-Controller");
+        }
+
+        private void PropertiesCallback(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
         }
 
         private void StopProgramCallback(object sender, EventArgs e)
@@ -148,8 +158,8 @@ namespace Trik.Upload_Extension
                 await Tasks.Task.Run(() => Uploader.SolutionManager.UpdateProjects(projects));
             }
             _visualStudio.Statusbar.Progress(8000, "Uploading");
-            var error = await Uploader.AsyncUploadActiveProject();
-            await Tasks.Task.Run(() => _visualStudio.Statusbar.StopProgress());
+            var error = await Uploader.UploadActiveProjectAsync();
+            await _visualStudio.Statusbar.StopProgressAsync();
             if (error.Length != 0)
             {
                 _visualStudio.WindowPane.SetText(error + "/n/n/ Trying to reconnect...");
@@ -178,28 +188,26 @@ namespace Trik.Upload_Extension
             _visualStudio.Statusbar.SetText("Connecting...");
             //_ip = 1connectionWindow.IpAddress.Text;
             _uploadToolbar.Upload.Enabled = false;
+            const int dueTime = 11000; //Usual time is taken for connection with a controller
+            _visualStudio.Statusbar.Progress(dueTime, "Connecting");
+            var error = "";
+            Uploader = new Uploader(_ip) { OutputAction = _visualStudio.WindowPane.AppendText };
+            try
             {
-                const int dueTime = 11000; //Usual time is taken for connection with a controller
-                _visualStudio.Statusbar.Progress(dueTime, "Connecting");
-                var error = "";
-                try
-                {
-                    Uploader =
-                        await
-                            Tasks.Task.Run(() => new Uploader(_ip) {OutputAction = _visualStudio.WindowPane.AppendText});
-                }
-                catch (Exception exeption)
-                {
-                    error = exeption.Message;
-                    _visualStudio.Statusbar.SetText("Connection attempt failed. See Output pane for details");
-                    _visualStudio.WindowPane.SetText(error);
-                }
-                await Tasks.Task.Run(() => _visualStudio.Statusbar.StopProgress());
-                if (error != "") return;
-
+                await Uploader.ConnectAsync();
+                await _visualStudio.Statusbar.StopProgressAsync();
                 _visualStudio.Statusbar.SetText("Connected!");
                 _uploadToolbar.Upload.Enabled = true;
             }
+            catch (Exception exeption)
+            {
+                error = exeption.Message;
+            }
+            if (error == "") return;
+
+            await _visualStudio.Statusbar.StopProgressAsync();
+            _visualStudio.Statusbar.SetText("Connection attempt failed. See Output pane for details");
+            _visualStudio.WindowPane.SetText(error);
         }
 
         private void Reconnect(object sender, EventArgs eventArgs)
@@ -213,7 +221,7 @@ namespace Trik.Upload_Extension
             try
             {
                 _visualStudio.Statusbar.Progress(8000, "Network error is occurred. Trying to reconnect");
-                Uploader.Reconnect();
+                await Uploader.ReconnectAsync();
             }
             catch (Exception)
             {
@@ -223,7 +231,7 @@ namespace Trik.Upload_Extension
                 _uploadToolbar.RunProgram.Enabled = false;
                 _uploadToolbar.Upload.Enabled = false;
             }
-            await Tasks.Task.Run(() => _visualStudio.Statusbar.StopProgress());
+            await _visualStudio.Statusbar.StopProgressAsync();
             _visualStudio.Statusbar.SetText(error == "" ? "Connected!" : error);
             _uploadToolbar.Upload.Enabled = true;
         }

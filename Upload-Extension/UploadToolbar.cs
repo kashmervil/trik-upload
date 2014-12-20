@@ -10,6 +10,7 @@ namespace Trik.Upload_Extension
         public MenuCommand Upload { get; set; }
         public MenuCommand RunProgram { get; set; }
         public MenuCommand StopProgram { get; set; }
+        public MenuCommand Properties { get; set; }
 
     }
 }

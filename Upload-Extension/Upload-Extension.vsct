@@ -80,6 +80,14 @@
         </Strings>
       </Button>
 
+      <!--Properties Button-->
+      <Button guid="guidUpload_ExtensionCmdSet" id="Properties" priority="0x0100" type="Button">
+        <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
+        <Icon guid="guidImages2" id="bmpProperties" />
+        <Strings>
+          <ButtonText>Propierties Window</ButtonText>
+        </Strings>
+      </Button>
     </Buttons>
 
 
@@ -102,7 +110,7 @@
     <Bitmaps>
       
       <Bitmap guid="guidImages" href="Resources\Images.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows"/>
-      <Bitmap guid="guidImages2" href="Resources\icons.png" usedList="bmpConnect, bmpReconnect"/>
+      <Bitmap guid="guidImages2" href="Resources\icons.png" usedList="bmpConnect, bmpReserved1, bmpReconnect, bmpProperties, bmpPicX, bmpPicArrows"/>
       
     </Bitmaps>
 
@@ -144,6 +152,7 @@
       <IDSymbol name="UploadToTarget"    value="0x303" />
       <IDSymbol name="RunOnTarget"       value="0x304" />
       <IDSymbol name="StopEvaluating"    value="0x305" />
+      <IDSymbol name="Properties"    value="0x306" />
       <!--Drop Down list-->
       <IDSymbol name="GetIPList"       value="0x200"/>
       <IDSymbol name="TargetIP"        value="0x201"/>
@@ -165,8 +174,10 @@
     <GuidSymbol name="guidImages2" value="{0463CF3D-7677-403F-8C41-0D6167FFD681}" >
       <IDSymbol name="bmpConnect" value="1" />
       <IDSymbol name="bmpReconnect" value="2" />
-
-
+      <IDSymbol name="bmpReserved1" value="3" />
+      <IDSymbol name="bmpProperties" value="4" />
+      <IDSymbol name="bmpPicX" value="5" />
+      <IDSymbol name="bmpPicArrows" value="6" />
     </GuidSymbol>
   </Symbols>
 

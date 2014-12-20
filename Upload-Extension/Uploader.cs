@@ -22,21 +22,24 @@ namespace Trik.Upload_Extension
         public Uploader(string ip)
         {
             _scpClient = new ScpClient(ip, "root", "");
-            _scpClient.Connect();
+            _sshClient = new SshClient(ip, "root", "");
+            var resources = Path.GetDirectoryName(typeof(Uploader).Assembly.Location);
+            _libconwrapPath = resources + @"\Resources\libconWrap.so.1.0.0";
+        }
+
+        public async Task ConnectAsync()
+        {
+            await Task.Run(() =>_scpClient.Connect());
             _scpClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
 
-            _sshClient = new SshClient(ip, "root", "");
-            _sshClient.Connect();
+            await Task.Run(() => _sshClient.Connect());
             _sshClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
             _shellStream = _sshClient.CreateShellStream("TRIK-SHELL", 80, 24, 800, 600, 1024);
             _shellWriterStream = new StreamWriter(_shellStream) { AutoFlush = true };
-            
+
             _timer.Start();
             _timer.Elapsed += KeepAlive;
-            _sshClient.RunCommand("mkdir /home/root/trik-sharp /home/root/trik-sharp/uploads /home/root/trik/scripts/trik-sharp");
-
-            var resources = Path.GetDirectoryName(typeof(Uploader).Assembly.Location);
-            _libconwrapPath = resources + @"\Resources\libconWrap.so.1.0.0";
+            await Task.Run( () => _sshClient.RunCommand("mkdir /home/root/trik-sharp /home/root/trik-sharp/uploads /home/root/trik/scripts/trik-sharp"));
         }
 
         public SolutionManager SolutionManager { get; set; }
@@ -46,18 +49,22 @@ namespace Trik.Upload_Extension
  	        _scpClient.SendKeepAlive();
             _sshClient.SendKeepAlive();
         }
-        public void Reconnect()
+        public async Task<bool> ReconnectAsync()
         {
-            _timer.Elapsed -= KeepAlive;
-            _scpClient.Disconnect();
-            _scpClient.Connect();
-            _sshClient.Disconnect();
-            _sshClient.Connect();
-            _shellStream = _sshClient.CreateShellStream("TRIK-SHELL", 80, 24, 800, 600, 1024);
-            _shellWriterStream = new StreamWriter(_shellStream) { AutoFlush = true };
-            _timer.Elapsed += KeepAlive;
+            return await Task.Run(() =>
+            {
+                _timer.Elapsed -= KeepAlive;
+                _scpClient.Disconnect();
+                _scpClient.Connect();
+                _sshClient.Disconnect();
+                _sshClient.Connect();
+                _shellStream = _sshClient.CreateShellStream("TRIK-SHELL", 80, 24, 800, 600, 1024);
+                _shellWriterStream = new StreamWriter(_shellStream) { AutoFlush = true };
+                _timer.Elapsed += KeepAlive;
+                return true;
+            });
         }
-        public async Task<string> AsyncUploadActiveProject()
+        public async Task<string> UploadActiveProjectAsync()
         {
             return await Task.Run(() => //TODO: Remove this ***
             {
@@ -65,7 +72,7 @@ namespace Trik.Upload_Extension
                 var activeProject = SolutionManager.ActiveProject;
                 if (activeProject == null)
                     throw new InvalidOperationException(
-                        "Calling AsyncUploadActiveProject before setting ActiveProject property");
+                        "Calling UploadActiveProjectAsync before setting ActiveProject property");
                 try
                 {
                     if (activeProject.UploadedFiles.Count == 0)
@@ -108,7 +115,8 @@ namespace Trik.Upload_Extension
         {
             set
             {
-                _shellStream.DataReceived -= _shellStreamHandler;
+                if (_shellStream != null) _shellStream.DataReceived -= _shellStreamHandler;
+
                 _shellStreamHandler = (sender, args) => value(Encoding.UTF8.GetString(args.Data));
             }
         }

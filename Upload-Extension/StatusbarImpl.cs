@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Internal.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell.Interop;
 
 namespace Trik.Upload_Extension
@@ -9,7 +8,6 @@ namespace Trik.Upload_Extension
     internal class StatusbarImpl
     {
         private readonly IVsStatusbar _statusbar;
-        private CancellationTokenSource _cancellationTokenSource;
         private uint _statusbarCookie;
         private BackgroundWorker _worker;
         private readonly AutoResetEvent _resetEvent = new AutoResetEvent(false);
@@ -17,7 +15,6 @@ namespace Trik.Upload_Extension
         internal StatusbarImpl(IVsStatusbar statusbar)
         {
             _statusbar = statusbar;
-            _cancellationTokenSource = new CancellationTokenSource();
         }
         internal void SetText(string text)
         {
@@ -47,21 +44,13 @@ namespace Trik.Upload_Extension
                 _resetEvent.Set();
             };
             _worker.RunWorkerAsync();
-            /*}, _cancellationTokenSource.Token);
-            _cancellationTokenSource.Token.Register(() =>
-            {
-                _statusbar.Clear();
-                _statusbar.Progress(ref _statusbarCookie, 1, "", 0, 0);
-
-            });
-        */
         }
 
-        internal void StopProgress()
+        internal async Task<bool> StopProgressAsync()
         {
             _worker.RunWorkerCompleted += (sender, args) => _statusbar.Progress(ref _statusbarCookie, 1, "", 0, 0);
             _worker.CancelAsync();
-            _resetEvent.WaitOne();
+            return await Task.Run(() =>_resetEvent.WaitOne());
         }
     }
 }
