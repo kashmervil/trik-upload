@@ -4,11 +4,7 @@ namespace Trik.Upload_Extension
 {
     internal class UploadToolbar
     {
-        public UploadToolbar()
-        {
-            DropDownListMessage = "Enter TRIK ip";
-        }
-        public MenuCommand Connect { get; set; }
+        //public MenuCommand Connect { get; set; }
         public MenuCommand Reconnect { get; set; }
         public MenuCommand Disconnect { get; set; }
         public MenuCommand Upload { get; set; }
@@ -16,6 +12,7 @@ namespace Trik.Upload_Extension
         public MenuCommand StopProgram { get; set; }
         public MenuCommand Properties { get; set; }
         public string DropDownListMessage { get; set; }
+        public string OptionsMessage { get; set; }
 
     }
 }

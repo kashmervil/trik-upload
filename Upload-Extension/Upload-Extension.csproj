@@ -134,6 +134,9 @@
       <DependentUpon>MyControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="Guids.cs" />
+    <Compile Include="NewTargetWindow.xaml.cs">
+      <DependentUpon>NewTargetWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="PropertiesWindow.xaml.cs">
       <DependentUpon>PropertiesWindow.xaml</DependentUpon>
     </Compile>
@@ -144,6 +147,9 @@
     </Compile>
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="StatusbarImpl.cs" />
+    <Compile Include="Targets.xaml.cs">
+      <DependentUpon>Targets.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Upload-ExtensionPackage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PkgCmdID.cs" />
@@ -197,7 +203,15 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="NewTargetWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="PropertiesWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Targets.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

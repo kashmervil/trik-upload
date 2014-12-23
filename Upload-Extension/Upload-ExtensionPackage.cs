@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using System.Runtime.InteropServices;
 using System.ComponentModel.Design;
-using System.Windows.Forms;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell;
 using EnvDTE;
@@ -27,9 +25,9 @@ namespace Trik.Upload_Extension
     {
         private Uploader Uploader { get; set; }
 #if DEBUG
-        private IList<string> _ips = new List<string>{"10.0.40.127", "*Enter new TRIK IP"};
+        private ObservableCollection<string> _ips = new ObservableCollection<string>{"10.0.40.127", "10.0.40.161"};
 #else   
-        private IList<string> _ips = new List<string>{"192.168.1.1", "*Enter new TRIK IP"};
+        private ObservableCollection<string> _ips = new ObservableCollection<string>{"192.168.1.1"};
 #endif
         private UploadToolbar _uploadToolbar;
         private IDE _visualStudio;
@@ -51,11 +49,7 @@ namespace Trik.Upload_Extension
             if (null == mcs) return;
 
             //Toolbar initialization
-            _uploadToolbar = new UploadToolbar();
-
-            var connectId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int) PkgCmdIDList.ConnectToTarget);
-            _uploadToolbar.Connect = new MenuCommand(NotImplemeted, connectId);
-            mcs.AddCommand(_uploadToolbar.Connect);
+            _uploadToolbar = new UploadToolbar { DropDownListMessage = "Enter TRIK Address", OptionsMessage = "*Manage TRIK profiles" };
 
             var reconnectId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int) PkgCmdIDList.ReconnectToTarget);
             _uploadToolbar.Reconnect = new MenuCommand(Reconnect, reconnectId) {Enabled = true};
@@ -98,12 +92,6 @@ namespace Trik.Upload_Extension
 
             _visualStudio.WindowPane.SetName("TRIK-Controller");
         }
-
-        private void NotImplemeted(object sender, EventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
         #endregion
 
         private void HandleInvokeComboGetList(object sender, EventArgs e)
@@ -112,7 +100,9 @@ namespace Trik.Upload_Extension
             if (args == null) return;
             if (args.OutValue != IntPtr.Zero)
             {
-                Marshal.GetNativeVariantForObject(_ips.ToArray(), args.OutValue);
+                var allOptions = _ips.ToList();
+                allOptions.Add(_uploadToolbar.OptionsMessage);
+                Marshal.GetNativeVariantForObject(allOptions.ToArray(), args.OutValue);
             }
         }
 
@@ -128,26 +118,17 @@ namespace Trik.Upload_Extension
             {
                 var inValue = args.InValue as string;
                 if (inValue == null) return;
-                if (inValue != "*Enter new TRIK IP")
+                if (inValue != _uploadToolbar.OptionsMessage)
+                {
                     _uploadToolbar.DropDownListMessage = inValue;
+                    if (Uploader == null || Uploader.Ip != inValue)
+                        ConnectToTargetCallback(inValue);
+                }
                 else
                 {
-                    var form = new Form();
-                    var textbox = new TextBox();
-                    form.Controls.Add(textbox);
-                    form.Closed += (o, eventArgs) =>
-                    {
-                        IPAddress ip;
-                        if (!IPAddress.TryParse(textbox.Text, out ip)) return;
-                        if (!_ips.Contains(ip.ToString())) _ips.Insert(_ips.Count - 1, ip.ToString());
-                        _uploadToolbar.DropDownListMessage = textbox.Text;
-                    };
-                    form.ShowDialog();
+                    var window = new Targets {ListBoxTargets = {ItemsSource = _ips}};
+                    window.ShowDialog();
                 }
-                var newIp = _uploadToolbar.DropDownListMessage;
-                if (newIp == "Enter TRIK ip") return; //Early first case (DropDownListMessage hadn't been modified and input in a textbox was incorrect)
-                if (Uploader == null || Uploader.Ip != newIp)
-                    ConnectToTargetCallback(_uploadToolbar.DropDownListMessage);
             }
         }
 
@@ -161,6 +142,7 @@ namespace Trik.Upload_Extension
                 _visualStudio.GetSolutionProjects(solution.Projects));
                 Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects[0];
             }
+            var currentProject = Uploader.SolutionManager.ActiveProject.ProjectName;
             var propertiesWindow = new PropertiesWindow
             {
                 DataContext = Uploader.SolutionManager,
@@ -171,6 +153,13 @@ namespace Trik.Upload_Extension
                 }
             };
             propertiesWindow.ShowDialog();
+            if (Uploader.SolutionManager.ActiveProject.ProjectName == currentProject) return;
+
+            _visualStudio.Statusbar.SetText("Switched to " + Uploader.SolutionManager.ActiveProject);
+            if (Uploader.SolutionManager.ActiveProject.UploadedFiles == null)
+            {
+                _uploadToolbar.RunProgram.Enabled = false;
+            }
         }
 
         private void StopProgramCallback(object sender, EventArgs e)
@@ -263,7 +252,6 @@ namespace Trik.Upload_Extension
 
         private async void ConnectToTargetCallback(string ip)
         {
-            _uploadToolbar.Connect.Enabled = false;
             _uploadToolbar.RunProgram.Enabled = false;
 
             _visualStudio.Statusbar.SetText("Connecting...");
@@ -272,23 +260,29 @@ namespace Trik.Upload_Extension
             _visualStudio.Statusbar.Progress(dueTime, "Connecting");
             var error = "";
             Uploader = new Uploader(ip) { OutputAction = _visualStudio.WindowPane.AppendText };
-            try
+            await Tasks.Task.Run(async () =>
             {
-                await Uploader.ConnectAsync();
+                try
+                {
+                    Uploader.Connect();
+                }
+                catch (Exception exeption)
+                {
+                    error = exeption.Message;
+                }
                 await _visualStudio.Statusbar.StopProgressAsync();
-                _visualStudio.Statusbar.SetText("Connected!");
-                _uploadToolbar.Upload.Enabled = true;
-                _uploadToolbar.Properties.Enabled = true;
-            }
-            catch (Exception exeption)
-            {
-                error = exeption.Message;
-            }
-            if (error == "") return;
-
-            await _visualStudio.Statusbar.StopProgressAsync();
-            _visualStudio.Statusbar.SetText("Connection attempt failed. See Output pane for details");
-            _visualStudio.WindowPane.SetText(error);
+                if (error == "")
+                {
+                    _visualStudio.Statusbar.SetText("Connected!");
+                    _uploadToolbar.Upload.Enabled = true;
+                    _uploadToolbar.Properties.Enabled = true;
+                }
+                else
+                {
+                    _visualStudio.Statusbar.SetText("Connection attempt failed. See Output pane for details");
+                    _visualStudio.WindowPane.SetText(error);
+                }
+            });
         }
 
         private void Reconnect(object sender, EventArgs eventArgs)
@@ -308,7 +302,7 @@ namespace Trik.Upload_Extension
             {
                 error = "Can't connect to TRIK. Check connection and try again";
                 Uploader = null;
-                _uploadToolbar.Connect.Enabled = true;
+                //_uploadToolbar.Connect.Enabled = true;
                 _uploadToolbar.RunProgram.Enabled = false;
                 _uploadToolbar.Upload.Enabled = false;
             }

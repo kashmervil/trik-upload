@@ -28,19 +28,19 @@ namespace Trik.Upload_Extension
             _libconwrapPath = resources + @"\Resources\libconWrap.so.1.0.0";
         }
 
-        public async Task ConnectAsync()
+        public  void Connect()
         {
-            await Task.Run(() =>_scpClient.Connect());
+            _scpClient.Connect();
             _scpClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
 
-            await Task.Run(() => _sshClient.Connect());
+            _sshClient.Connect();
             _sshClient.KeepAliveInterval = TimeSpan.FromSeconds(10.0);
             _shellStream = _sshClient.CreateShellStream("TRIK-SHELL", 80, 24, 800, 600, 1024);
             _shellWriterStream = new StreamWriter(_shellStream) { AutoFlush = true };
 
             _timer.Start();
             _timer.Elapsed += KeepAlive;
-            await Task.Run( () => _sshClient.RunCommand("mkdir /home/root/trik-sharp /home/root/trik-sharp/uploads /home/root/trik/scripts/trik-sharp"));
+            _sshClient.RunCommand("mkdir /home/root/trik-sharp /home/root/trik-sharp/uploads /home/root/trik/scripts/trik-sharp");
         }
 
         public SolutionManager SolutionManager { get; set; }
