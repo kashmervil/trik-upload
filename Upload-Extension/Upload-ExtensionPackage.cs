@@ -27,7 +27,7 @@ namespace Trik.Upload_Extension
     {
         private Uploader Uploader { get; set; }
 #if DEBUG
-        private IList<string> _ips = new List<string>{"10.0.40.118", "*Enter new TRIK IP"};
+        private IList<string> _ips = new List<string>{"10.0.40.127", "*Enter new TRIK IP"};
 #else   
         private IList<string> _ips = new List<string>{"192.168.1.1", "*Enter new TRIK IP"};
 #endif
@@ -78,7 +78,7 @@ namespace Trik.Upload_Extension
             mcs.AddCommand(_uploadToolbar.StopProgram);
 
             var propertiesId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int)PkgCmdIDList.Properties);
-            _uploadToolbar.Properties = new MenuCommand(PropertiesCallback, propertiesId) { Enabled = true };
+            _uploadToolbar.Properties = new MenuCommand(PropertiesCallback, propertiesId) { Enabled = false };
             mcs.AddCommand(_uploadToolbar.Properties);
 
             var comboBoxCommandId = new CommandID(GuidList.GuidUploadExtensionCmdSet, (int)PkgCmdIDList.TargetIp);
@@ -153,13 +153,24 @@ namespace Trik.Upload_Extension
 
         private void PropertiesCallback(object sender, EventArgs e)
         {
-            var projects = Uploader.SolutionManager.Projects.Select(x => x.ProjectName).ToList();
-            var form = new Form();
-            var list = new ComboBox();
-            list.Items.AddRange(projects.ToArray());
-            form.Controls.Add(list);
-            form.ShowDialog();
-            //list.
+            var solution = ((DTE2)GetService(typeof(DTE))).Solution;
+            if (Uploader.SolutionManager == null ||
+                Uploader.SolutionManager.FullName != solution.FullName)
+            {
+                Uploader.SolutionManager = new SolutionManager(solution.FullName,
+                _visualStudio.GetSolutionProjects(solution.Projects));
+                Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects[0];
+            }
+            var propertiesWindow = new PropertiesWindow
+            {
+                DataContext = Uploader.SolutionManager,
+                ComboBox =
+                {
+                    ItemsSource = Uploader.SolutionManager.Projects.Select(x => x.ProjectName),
+                    SelectedItem = Uploader.SolutionManager.ActiveProject.ProjectName
+                }
+            };
+            propertiesWindow.ShowDialog();
         }
 
         private void StopProgramCallback(object sender, EventArgs e)
@@ -199,31 +210,38 @@ namespace Trik.Upload_Extension
             _visualStudio.Statusbar.SetText("Uploading...");
             _uploadToolbar.Upload.Enabled = false;
             _uploadToolbar.RunProgram.Enabled = false;
-            var dte = (DTE2) GetService(typeof (DTE));
-            var buildConfiguration = dte.Solution.SolutionBuild.ActiveConfiguration.Name;
+            var solution = ((DTE2) GetService(typeof (DTE))).Solution;
+            var buildConfiguration = solution.SolutionBuild.ActiveConfiguration.Name;
 
             if ("Release" != buildConfiguration)
             {
                 const string message = "Use Release build for better performance";
                 _visualStudio.WindowPane.SetText(message);
-                _visualStudio.Statusbar.SetText(message);
+                _visualStudio.Statusbar.SetText("Please change Solution Configuration option. " + message);
                 _uploadToolbar.Upload.Enabled = true;
                 return;
             }
             if (Uploader.SolutionManager == null ||
-                Uploader.SolutionManager.FullName != dte.Solution.FullName)
+                Uploader.SolutionManager.FullName != solution.FullName)
             {
-                var solution = dte.Solution;
                 Uploader.SolutionManager = new SolutionManager(solution.FullName,
                     _visualStudio.GetSolutionProjects(solution.Projects));
-                Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects.First();//TODO: replace with user choice
+                if (Uploader.SolutionManager.Projects.Count == 1)
+                    Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects[0];
+                else
+                {
+                    const string message = "Please select a project to upload in Properties";
+                    _visualStudio.Statusbar.SetText(message);
+                    _visualStudio.WindowPane.SetText("You opened a new solution. Your solution has more than one project " + message);
+                }
             }
             else
             {
-                var projects = _visualStudio.GetSolutionProjects(dte.Solution);
+                var projects = _visualStudio.GetSolutionProjects(solution);
                 await Tasks.Task.Run(() => Uploader.SolutionManager.UpdateProjects(projects));
             }
-            _visualStudio.Statusbar.Progress(8000, "Uploading");
+            var activeProjectName = Uploader.SolutionManager.ActiveProject.ProjectName;
+            _visualStudio.Statusbar.Progress(8000, "Uploading " + activeProjectName);
             var error = await Uploader.UploadActiveProjectAsync();
             await _visualStudio.Statusbar.StopProgressAsync();
             if (error.Length != 0)
@@ -233,10 +251,12 @@ namespace Trik.Upload_Extension
             }
             else
             {
-                _visualStudio.Statusbar.SetText("Uploaded!");
-                _visualStudio.WindowPane.SetText("Uploaded!");
+                var message = activeProjectName + " Uploaded!";
+                _visualStudio.Statusbar.SetText(message);
+                _visualStudio.WindowPane.SetText(message);
                 _uploadToolbar.RunProgram.Enabled = true;
                 _uploadToolbar.Upload.Enabled = true;
+                _uploadToolbar.Properties.Enabled = true;
             }
 
         }
@@ -258,6 +278,7 @@ namespace Trik.Upload_Extension
                 await _visualStudio.Statusbar.StopProgressAsync();
                 _visualStudio.Statusbar.SetText("Connected!");
                 _uploadToolbar.Upload.Enabled = true;
+                _uploadToolbar.Properties.Enabled = true;
             }
             catch (Exception exeption)
             {
@@ -280,7 +301,7 @@ namespace Trik.Upload_Extension
             var error = "";
             try
             {
-                _visualStudio.Statusbar.Progress(8000, "Network error is occurred. Trying to reconnect");
+                _visualStudio.Statusbar.Progress(8000, "Trying to reconnect");
                 await Uploader.ReconnectAsync();
             }
             catch (Exception)
@@ -294,6 +315,7 @@ namespace Trik.Upload_Extension
             await _visualStudio.Statusbar.StopProgressAsync();
             _visualStudio.Statusbar.SetText(error == "" ? "Connected!" : error);
             _uploadToolbar.Upload.Enabled = true;
+            _uploadToolbar.Properties.Enabled = true;
         }
     }
 }

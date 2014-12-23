@@ -1,0 +1,15 @@
+﻿<Window x:Class="Trik.Upload_Extension.PropertiesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PropertiesWindow" Height="121" Width="233" ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+
+    <StackPanel Name="Panel" Margin="10,10,10,50">
+        <ComboBox Name="ComboBox" />
+        <Grid>
+            <Button Margin="0,18,1,-49" Click="ButtonOkay_Click" Content="OK" HorizontalAlignment="Right" Width="86"/>
+            <Button Margin="1,18,117,-49" Content="Cancel" Click="ButtonClose_OnClicked"/>
+
+        </Grid>
+    </StackPanel>
+
+</Window>
