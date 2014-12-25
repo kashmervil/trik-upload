@@ -23,7 +23,7 @@
     
     <Buttons>
       
-      <!--Connect Button-->
+      <!-- <!- -Connect Button- ->
       <Button guid="guidUpload_ExtensionCmdSet" id="ConnectToTarget" priority="0x0100" type="Button">
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
         <Icon guid="guidImages2" id="bmpConnect" />
@@ -33,7 +33,7 @@
         </Strings>
       </Button>
 
-      <!--Reconnect Button-->
+      <!- -Reconnect Button- ->
       <Button guid="guidUpload_ExtensionCmdSet" id="ReconnectToTarget" priority="0x0100" type="Button">
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
         <Icon guid="guidImages" id="bmpPicSearch" />
@@ -43,14 +43,14 @@
         </Strings>
       </Button>
 
-      <!--Disconnect Button-->
+      <!- -Disconnect Button- ->
       <Button guid="guidUpload_ExtensionCmdSet" id="Disconnect" priority="0x0100" type="Button">
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
           <ButtonText>Disconnect from TRIK</ButtonText>
         </Strings>
-      </Button>
+      </Button>-->
       
       <!--Upload Button-->
       <Button guid="guidUpload_ExtensionCmdSet" id="UploadToTarget" priority="0x0100" type="Button">
@@ -127,7 +127,10 @@
  
   </Commands>
 
-  
+  <VisibilityConstraints>
+    <VisibilityItem guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup"
+      context="UICONTEXT_SolutionExists"/>
+  </VisibilityConstraints>
   <KeyBindings>
     <KeyBinding guid="guidUpload_ExtensionCmdSet" id="ConnectToTarget" editor="guidVSStd97" key1="B" mod1="ALT SHIFT CONTROL" />
   </KeyBindings>

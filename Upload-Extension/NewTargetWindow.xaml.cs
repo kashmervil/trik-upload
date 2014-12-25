@@ -40,11 +40,6 @@ namespace Trik.Upload_Extension
             Close();
         }
 
-        private void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
-
         private void TargetIP_TextChanged(object sender, TextChangedEventArgs e)
         {
 

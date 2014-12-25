@@ -85,6 +85,8 @@ namespace Trik.Upload_Extension
 
                     var newFiles = Directory.GetFiles(project.ProjectLocalBuildPath);
                     var uploadedFiles = project.UploadedFiles;
+                    if (newFiles.Length == 0) return "Release folder is empty. Make sure you've built your Solution";
+
                     foreach (var file in newFiles)
                     {
                         if (!uploadedFiles.ContainsKey(file))
