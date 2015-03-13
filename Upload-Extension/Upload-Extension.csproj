@@ -171,7 +171,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <Resource Include="Resources\icons.png" />
     <Content Include="Resources\libconWrap.so.1.0.0">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
@@ -192,7 +191,6 @@
     <None Include="Resources\Images.png" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\Connect.png" />
     <Content Include="Resources\Package.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>

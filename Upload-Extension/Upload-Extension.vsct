@@ -55,8 +55,7 @@
       <!--Upload Button-->
       <Button guid="guidUpload_ExtensionCmdSet" id="UploadToTarget" priority="0x0100" type="Button">
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
-        <Icon guid="guidImages" id="bmpPicSearch" />
-        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Icon guid="guidImages" id="upload" />
         <Strings>
           <ButtonText>Upload to TRIK</ButtonText>
         </Strings>
@@ -65,7 +64,7 @@
       <!--Run Application Button-->
       <Button guid="guidUpload_ExtensionCmdSet" id="RunOnTarget" priority="0x0100" type="Button">
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
-        <Icon guid="guidImages" id="bmpPic1" />
+        <Icon guid="guidImages" id="run" />
         <Strings>
           <ButtonText>Run app on TRIK</ButtonText>
         </Strings>
@@ -74,7 +73,7 @@
       <!--Stop Evaluation Button-->
       <Button guid="guidUpload_ExtensionCmdSet" id="StopEvaluating" priority="0x0100" type="Button">
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
-        <Icon guid="guidImages" id="bmpPicSearch" />
+        <Icon guid="guidImages" id="stop" />
         <Strings>
           <ButtonText>Stop Evaluating</ButtonText>
         </Strings>
@@ -83,7 +82,7 @@
       <!--Properties Button-->
       <Button guid="guidUpload_ExtensionCmdSet" id="Properties" priority="0x0100" type="Button">
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
-        <Icon guid="guidImages2" id="bmpProperties" />
+        <Icon guid="guidImages" id="properties" />
         <Strings>
           <ButtonText>Propierties Window</ButtonText>
         </Strings>
@@ -109,8 +108,8 @@
     
     <Bitmaps>
       
-      <Bitmap guid="guidImages" href="Resources\Images.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows"/>
-      <Bitmap guid="guidImages2" href="Resources\icons.png" usedList="bmpConnect, bmpReserved1, bmpReconnect, bmpProperties, bmpPicX, bmpPicArrows"/>
+      <Bitmap guid="guidImages" href="Resources\Images.png" usedList="upload, run, stop, properties, bmpPicArrows"/>
+      <!--Bitmap guid="guidImages2" href="Resources\icons.png" usedList="bmpConnect, bmpReserved1, bmpReconnect, bmpProperties, bmpPicX, bmpPicArrows"/-->
       
     </Bitmaps>
 
@@ -129,11 +128,24 @@
 
   <VisibilityConstraints>
     <VisibilityItem guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup"
-      context="UICONTEXT_SolutionExists"/>
+      context="UICONTEXT_SolutionHasSingleProject"/>
+   <VisibilityItem guid="guidUpload_ExtensionCmdSet" id="UploadToTarget"
+      context="UICONTEXT_SolutionHasSingleProject"/>
+   <VisibilityItem guid="guidUpload_ExtensionCmdSet" id="RunOnTarget"
+      context="UICONTEXT_SolutionHasSingleProject"/>
+      <VisibilityItem guid="guidUpload_ExtensionCmdSet" id="StopEvaluating"
+      context="UICONTEXT_SolutionHasSingleProject"/>
+      <VisibilityItem guid="guidUpload_ExtensionCmdSet" id="Properties"
+      context="UICONTEXT_SolutionHasSingleProject"/>
   </VisibilityConstraints>
+  
   <KeyBindings>
-    <KeyBinding guid="guidUpload_ExtensionCmdSet" id="ConnectToTarget" editor="guidVSStd97" key1="B" mod1="ALT SHIFT CONTROL" />
+    <KeyBinding guid="guidUpload_ExtensionCmdSet" id="UploadToTarget"  editor="guidVSStd97" key1="U" mod1="ALT SHIFT CONTROL" />
+    <KeyBinding guid="guidUpload_ExtensionCmdSet" id="RunOnTarget"     editor="guidVSStd97" key1="R" mod1="ALT SHIFT CONTROL" />
+    <KeyBinding guid="guidUpload_ExtensionCmdSet" id="StopEvaluating"  editor="guidVSStd97" key1="S" mod1="ALT SHIFT CONTROL" />
+    <KeyBinding guid="guidUpload_ExtensionCmdSet" id="Properties"      editor="guidVSStd97" key1="X" mod1="ALT SHIFT CONTROL" />
   </KeyBindings>
+  
   
   
   <Symbols>
@@ -165,22 +177,13 @@
     
       
     <GuidSymbol name="guidImages" value="{6795ce0f-f956-42a3-83f5-88199f990d06}" >
-      <IDSymbol name="bmpPic1" value="1" />
-      <IDSymbol name="bmpPic2" value="2" />
-      <IDSymbol name="bmpPicSearch" value="3" />
-      <IDSymbol name="bmpPicX" value="4" />
+      <IDSymbol name="upload" value="1" />
+      <IDSymbol name="run" value="2" />
+      <IDSymbol name="stop" value="3" />
+      <IDSymbol name="properties" value="4" />
       <IDSymbol name="bmpPicArrows" value="5" />
       <IDSymbol name="bmpPicStrikethrough" value="6" />
     
-    </GuidSymbol>
-
-    <GuidSymbol name="guidImages2" value="{0463CF3D-7677-403F-8C41-0D6167FFD681}" >
-      <IDSymbol name="bmpConnect" value="1" />
-      <IDSymbol name="bmpReconnect" value="2" />
-      <IDSymbol name="bmpReserved1" value="3" />
-      <IDSymbol name="bmpProperties" value="4" />
-      <IDSymbol name="bmpPicX" value="5" />
-      <IDSymbol name="bmpPicArrows" value="6" />
     </GuidSymbol>
   </Symbols>
 

@@ -21,7 +21,7 @@ namespace Trik.Upload_Extension
             var properName = ProjectName.Replace(" ", @"\ ").Replace("-", "_");
             RemoteScriptName = @"/home/root/trik/scripts/trik-sharp/" + properName;
             FilesUploadPath = @"/home/root/trik-sharp/uploads/" + properName + "/";
-            var executables = Directory.GetFiles(ProjectLocalBuildPath).Where(x => x.EndsWith(".exe")).ToArray();
+            var executables = Directory.GetFiles(ProjectLocalBuildPath).Where(x => x.EndsWith(".exe") && !x.EndsWith("vshost.exe")).ToArray();
             ExecutableFileName = (executables.Length == 1) ? Path.GetFileName(executables[0]) : properName + ".exe";
             UploadedFiles = new Dictionary<string, DateTime>();
         }
