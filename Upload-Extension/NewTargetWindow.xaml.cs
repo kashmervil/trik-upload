@@ -1,25 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
+﻿using System.Collections.ObjectModel;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace Trik.Upload_Extension
 {
     /// <summary>
-    /// Interaction logic for NewTargetWindow.xaml
+    ///     Interaction logic for NewTargetWindow.xaml
     /// </summary>
-    public partial class NewTargetWindow : Window
+    public partial class NewTargetWindow
     {
         public NewTargetWindow()
         {
@@ -42,7 +31,6 @@ namespace Trik.Upload_Extension
 
         private void TargetIP_TextChanged(object sender, TextChangedEventArgs e)
         {
-
         }
     }
 }

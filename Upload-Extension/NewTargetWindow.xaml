@@ -5,6 +5,6 @@
     <Grid>
         <TextBox Name="TargetIP" Margin="10,10,10,48" FontSize="16" TextChanged="TargetIP_TextChanged">New TRIK IP</TextBox>
         <Button Margin="0,47,10,10" HorizontalAlignment="Right" Width="91" Click="Button_Click" IsDefault="True">OK</Button>
-        <Button Margin="10,47,0,10" HorizontalAlignment="Left" Width="91" Content="Cancel" IsCancel="True"/>
+        <Button Margin="10,47,0,10" HorizontalAlignment="Left" Width="91" Content="Cancel" IsCancel="True" />
     </Grid>
 </Window>

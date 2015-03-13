@@ -21,10 +21,14 @@ namespace Trik.Upload_Extension
             var properName = ProjectName.Replace(" ", @"\ ").Replace("-", "_");
             RemoteScriptName = @"/home/root/trik/scripts/trik-sharp/" + properName;
             FilesUploadPath = @"/home/root/trik-sharp/uploads/" + properName + "/";
-            var executables = Directory.GetFiles(ProjectLocalBuildPath).Where(x => x.EndsWith(".exe") && !x.EndsWith("vshost.exe")).ToArray();
+            var executables =
+                Directory.GetFiles(ProjectLocalBuildPath)
+                    .Where(x => x.EndsWith(".exe") && !x.EndsWith("vshost.exe"))
+                    .ToArray();
             ExecutableFileName = (executables.Length == 1) ? Path.GetFileName(executables[0]) : properName + ".exe";
             UploadedFiles = new Dictionary<string, DateTime>();
         }
+
         public string ProjectName { get; private set; }
         public string ProjectLocalBuildPath { get; private set; }
         public string ProjectFilePath { get; private set; }
@@ -32,11 +36,12 @@ namespace Trik.Upload_Extension
         public string ExecutableFileName { get; private set; }
         public string FilesUploadPath { get; private set; }
         public Dictionary<string, DateTime> UploadedFiles { get; private set; }
+
         public string Script
         {
             get
             {
-                var text = 
+                var text =
                     "echo \"#!/bin/sh\n"
                     + "#killall trikGui\n"
                     + "mono " + FilesUploadPath + ExecutableFileName + " $* \n"

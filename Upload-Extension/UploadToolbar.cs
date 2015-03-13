@@ -13,6 +13,5 @@ namespace Trik.Upload_Extension
         public MenuCommand Properties { get; set; }
         public string DropDownListMessage { get; set; }
         public string OptionsMessage { get; set; }
-
     }
 }

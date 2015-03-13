@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.Shell.Interop;
 
 namespace Trik.Upload_Extension
@@ -6,6 +5,7 @@ namespace Trik.Upload_Extension
     internal class WindowPaneImpl
     {
         private readonly IVsOutputWindowPane _pane;
+
         internal WindowPaneImpl(IVsOutputWindowPane pane)
         {
             _pane = pane;
@@ -33,8 +33,5 @@ namespace Trik.Upload_Extension
         {
             _pane.SetName(text);
         }
-
-        
-
     }
 }

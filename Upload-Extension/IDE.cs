@@ -8,15 +8,21 @@ using Microsoft.VisualStudio.Shell.Interop;
 
 namespace Trik.Upload_Extension
 {
-    internal class IDE
+    internal class IDE : IDisposable
     {
+        public StatusbarImpl Statusbar;
+        public WindowPaneImpl WindowPane;
+
         public IDE(IVsStatusbar statusbar, IVsOutputWindowPane pane)
         {
             Statusbar = new StatusbarImpl(statusbar);
             WindowPane = new WindowPaneImpl(pane);
         }
-        public WindowPaneImpl WindowPane;
-        public StatusbarImpl Statusbar;
+
+        public void Dispose()
+        {
+            Statusbar.Dispose();
+        }
 
         public List<string> GetSolutionProjects(IEnumerable solution)
         {
@@ -49,6 +55,5 @@ namespace Trik.Upload_Extension
             }
             return list;
         }
-
     }
 }
