@@ -143,6 +143,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="SolutionManager.cs" />
     <Compile Include="StatusbarImpl.cs" />
     <Compile Include="Targets.xaml.cs">
       <DependentUpon>Targets.xaml</DependentUpon>

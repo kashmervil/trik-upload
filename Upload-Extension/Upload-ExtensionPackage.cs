@@ -31,6 +31,7 @@ namespace Trik.Upload_Extension
 #endif
         private UploadToolbar _uploadToolbar;
         private IDE VS { get; set; }
+        private SolutionManager SolutionManager { get; set; }
 
         public UploadExtensionPackage()
         {
@@ -144,29 +145,30 @@ namespace Trik.Upload_Extension
             var solution = ((DTE2) GetService(typeof (DTE))).Solution;
             var solutionProjects = VS.GetSolutionProjects(solution.Projects);
 
-            if (Uploader.SolutionManager == null ||
-                Uploader.SolutionManager.FullName != solution.FullName)
+            if (SolutionManager == null ||
+                SolutionManager.FullName != solution.FullName)
             {
-                Uploader.SolutionManager = new SolutionManager(solution.FullName,
-                    solutionProjects);
-                Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects[0];
+                SolutionManager = new SolutionManager(solution.FullName,
+                    solutionProjects, Uploader);
+                SolutionManager.ActiveProject = SolutionManager.Projects[0];
             }
-            Uploader.SolutionManager.UpdateProjects(solutionProjects);
-            var currentProject = Uploader.SolutionManager.ActiveProject.ProjectName;
+            SolutionManager.UpdateProjects(solutionProjects);
+            var currentProject = SolutionManager.ActiveProject ?? SolutionManager.Projects[0];
             var propertiesWindow = new PropertiesWindow
             {
-                DataContext = Uploader.SolutionManager,
+                DataContext = SolutionManager,
                 ComboBox =
                 {
-                    ItemsSource = Uploader.SolutionManager.Projects.Select(x => x.ProjectName),
-                    SelectedItem = Uploader.SolutionManager.ActiveProject.ProjectName
+                    ItemsSource = SolutionManager.Projects.Select(x => x.ProjectName),
+                    SelectedItem = currentProject.ProjectName
                 }
             };
             propertiesWindow.ShowDialog();
-            if (Uploader.SolutionManager.ActiveProject.ProjectName == currentProject) return;
-
-            VS.Statusbar.SetText("Switched to " + Uploader.SolutionManager.ActiveProject.ProjectName);
-            if (Uploader.SolutionManager.ActiveProject.UploadedFiles.Count == 0)
+            if (SolutionManager.ActiveProject == currentProject) return;
+            if (SolutionManager.ActiveProject == null)
+                throw new Exception("Properties window did work properly");
+            VS.Statusbar.SetText("Switched to " + SolutionManager.ActiveProject.ProjectName);
+            if (SolutionManager.ActiveProject.UploadedFiles.Count == 0)
             {
                 _uploadToolbar.RunProgram.Enabled = false;
             }
@@ -174,22 +176,22 @@ namespace Trik.Upload_Extension
 
         private void StopProgramCallback(object sender, EventArgs e)
         {
-            VS.WindowPane.SetText("========== Killing TRIK application ==========\n");
-            Uploader.StopProgram();
+            VS.WindowPane.WriteLine("========== Killing TRIK application ==========\n");
+            SolutionManager.StopProgram();
             _uploadToolbar.StopProgram.Enabled = false;
         }
 
 
         private void RunProgramCallback(object sender, EventArgs e)
         {
-            VS.WindowPane.SetText("========== Starting an Application on TRIK ==========\n");
+            VS.WindowPane.WriteLine("========== Starting an Application on TRIK ==========\n");
             _uploadToolbar.StopProgram.Enabled = true;
             Task.Run(() =>
             {
                 VS.Statusbar.SetText("Running application on TRIK. See output pane for more information");
                 try
                 {
-                    Uploader.RunProgram();
+                    SolutionManager.RunProgram();
                 }
                 catch (Exception exception)
                 {
@@ -197,7 +199,7 @@ namespace Trik.Upload_Extension
                         "Network error occurred while running an application. Trying to reconnect");
                     _uploadToolbar.RunProgram.Enabled = false;
                     _uploadToolbar.Upload.Enabled = false;
-                    VS.WindowPane.AppendText(exception.Message);
+                    VS.WindowPane.WriteLine(exception.Message);
 
                     Reconnect();
                 }
@@ -215,23 +217,23 @@ namespace Trik.Upload_Extension
             if ("Release" != buildConfiguration)
             {
                 const string message = "Use Release build for better performance";
-                VS.WindowPane.SetText(message);
+                VS.WindowPane.WriteLine(message);
                 VS.Statusbar.SetText("Please change Solution Configuration option. " + message);
                 _uploadToolbar.Upload.Enabled = true;
                 return;
             }
-            if (Uploader.SolutionManager == null ||
-                Uploader.SolutionManager.FullName != solution.FullName)
+            if (SolutionManager == null ||
+                SolutionManager.FullName != solution.FullName)
             {
-                Uploader.SolutionManager = new SolutionManager(solution.FullName,
-                    VS.GetSolutionProjects(solution.Projects));
-                if (Uploader.SolutionManager.Projects.Count == 1)
-                    Uploader.SolutionManager.ActiveProject = Uploader.SolutionManager.Projects[0];
+                SolutionManager = new SolutionManager(solution.FullName,
+                    VS.GetSolutionProjects(solution.Projects), Uploader);
+                if (SolutionManager.Projects.Count == 1)
+                    SolutionManager.ActiveProject = SolutionManager.Projects[0];
                 else
                 {
                     const string message = "Please select a project to upload in Properties";
                     VS.Statusbar.SetText(message);
-                    VS.WindowPane.SetText("You opened a new solution. Your solution has more than one project " +
+                    VS.WindowPane.WriteLine("You opened a new solution. Your solution has more than one project " +
                                           message);
                     return;
                 }
@@ -239,24 +241,24 @@ namespace Trik.Upload_Extension
             else
             {
                 var projects = VS.GetSolutionProjects(solution);
-                await Task.Run(() => Uploader.SolutionManager.UpdateProjects(projects));
+                await Task.Run(() => SolutionManager.UpdateProjects(projects));
             }
-            var activeProjectName = Uploader.SolutionManager.ActiveProject.ProjectName;
+            var activeProjectName = SolutionManager.ActiveProject.ProjectName;
             VS.Statusbar.Progress(8000, "Uploading " + activeProjectName);
             VS.WindowPane.Activate();
-            VS.WindowPane.AppendText(activeProjectName);
-            var error = await Uploader.UploadActiveProjectAsync();
+            VS.WindowPane.WriteLine(activeProjectName);
+            var error = await SolutionManager.UploadActiveProjectAsync();
             await VS.Statusbar.StopProgressAsync();
             if (error.Length != 0)
             {
-                VS.WindowPane.SetText(error + "\n Trying to reconnect...");
+                VS.WindowPane.WriteLine(error + "\n Trying to reconnect...");
                 Reconnect();
             }
             else
             {
                 var message = activeProjectName + " Uploaded!";
                 VS.Statusbar.SetText(message);
-                VS.WindowPane.SetText(message);
+                VS.WindowPane.WriteLine(message);
                 _uploadToolbar.RunProgram.Enabled = true;
                 _uploadToolbar.Upload.Enabled = true;
                 _uploadToolbar.Properties.Enabled = true;
@@ -267,12 +269,12 @@ namespace Trik.Upload_Extension
         {
             _uploadToolbar.RunProgram.Enabled = false;
             VS.WindowPane.SetName("TRIK Controller " + ip);
-            VS.WindowPane.SetText("Connecting to " + ip);
+            VS.WindowPane.WriteLine("Connecting to " + ip);
             _uploadToolbar.Upload.Enabled = false;
             const int dueTime = 11000; //Usual time is taken for connection with a controller
             VS.Statusbar.Progress(dueTime, "Connecting to " + ip);
             var error = "";
-            Uploader = new Uploader(ip) {OutputAction = VS.WindowPane.AppendText};
+            Uploader = new Uploader(ip) {OutputAction = VS.WindowPane.WriteLine};
             await Task.Run(async () =>
             {
                 try
@@ -287,7 +289,7 @@ namespace Trik.Upload_Extension
                 if (error == "")
                 {
                     VS.Statusbar.SetText("Connected!");
-                    VS.WindowPane.SetText("Connected to " + ip);
+                    VS.WindowPane.WriteLine("Connected to " + ip);
 
                     _uploadToolbar.Upload.Enabled = true;
                     _uploadToolbar.Properties.Enabled = true;
@@ -295,7 +297,7 @@ namespace Trik.Upload_Extension
                 else
                 {
                     VS.Statusbar.SetText("Connection attempt failed. See Output pane for details");
-                    VS.WindowPane.SetText(error);
+                    VS.WindowPane.WriteLine(error);
                 }
             });
         }
@@ -324,7 +326,7 @@ namespace Trik.Upload_Extension
             await VS.Statusbar.StopProgressAsync();
 
             var message = error == "" ? "Connected Successfully!" : error;
-            VS.WindowPane.AppendText(message);
+            VS.WindowPane.WriteLine(message);
             VS.Statusbar.SetText(message);
             _uploadToolbar.Upload.Enabled = true;
             _uploadToolbar.Properties.Enabled = true;

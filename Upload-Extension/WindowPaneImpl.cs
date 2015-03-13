@@ -11,22 +11,15 @@ namespace Trik.Upload_Extension
             _pane = pane;
         }
 
-        internal void AppendText(string text)
+        internal void WriteLine(string message)
         {
             _pane.Activate();
-            _pane.OutputStringThreadSafe(text);
+            _pane.OutputStringThreadSafe(message + "\n");
         }
 
         internal void Activate()
         {
             _pane.Activate();
-        }
-
-        internal void SetText(string text)
-        {
-            _pane.Activate();
-            _pane.Clear();
-            _pane.OutputStringThreadSafe(text);
         }
 
         internal void SetName(string text)

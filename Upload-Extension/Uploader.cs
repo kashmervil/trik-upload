@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
@@ -10,9 +8,8 @@ using Renci.SshNet.Common;
 
 namespace Trik.Upload_Extension
 {
-    public sealed class Uploader : IDisposable
+    internal sealed class Uploader : IDisposable
     {
-        private readonly string _libconwrapPath;
         private readonly ScpClient _scpClient;
         private readonly SshClient _sshClient;
         private readonly Timer _timer = new Timer(5000.0);
@@ -25,11 +22,7 @@ namespace Trik.Upload_Extension
             Ip = ip;
             _scpClient = new ScpClient(Ip, "root", "");
             _sshClient = new SshClient(Ip, "root", "");
-            var resources = Path.GetDirectoryName(typeof (Uploader).Assembly.Location);
-            _libconwrapPath = resources + @"\Resources\libconWrap.so.1.0.0";
         }
-
-        public SolutionManager SolutionManager { get; set; }
 
         public Action<string> OutputAction
         {
@@ -90,94 +83,28 @@ namespace Trik.Upload_Extension
             });
         }
 
-        public async Task<string> UploadActiveProjectAsync()
+        public void UploadFile(FileInfo localFileInfo, string remotePath)
         {
-            return await Task.Run(() => //TODO: Remove this ***
-            {
-                var error = "";
-                var project = SolutionManager.ActiveProject;
-                if (project == null)
-                    throw new InvalidOperationException(
-                        "Calling UploadActiveProjectAsync before setting ActiveProject property");
-                try
-                {
-                    if (project.UploadedFiles.Count == 0)
-                    {
-                        _sshClient.RunCommand("mkdir " + project.FilesUploadPath + "; " + project.Script);
-                        _scpClient.Upload(new FileInfo(_libconwrapPath),
-                            project.FilesUploadPath + Path.GetFileName(_libconwrapPath));
-                    }
-
-                    var newFiles = Directory.GetFiles(project.ProjectLocalBuildPath);
-                    var uploadedFiles = project.UploadedFiles;
-                    if (newFiles.Length == 0) return "Release folder is empty. Make sure you've built your Solution";
-
-                    foreach (var file in newFiles)
-                    {
-                        if (!uploadedFiles.ContainsKey(file))
-                        {
-                            uploadedFiles.Add(file, DateTime.MinValue);
-                        }
-                        var info = new FileInfo(file);
-                        if (info.LastWriteTime <= uploadedFiles[file]) continue;
-                        _scpClient.Upload(info, project.FilesUploadPath + Path.GetFileName(file));
-                        uploadedFiles[file] = info.LastWriteTime;
-                    }
-                }
-                catch (Exception exception)
-                {
-                    error = exception.Message;
-                }
-                return error;
-            });
+            _scpClient.Upload(localFileInfo, remotePath);
         }
-
-        public void RunProgram()
+        /// <summary>
+        /// Executes shell command without any output
+        /// </summary>
+        /// <param name="command"></param>
+        public void ExecuteCommand(string command)
+        {
+            _sshClient.RunCommand(command);
+        }
+        
+        /// <summary>
+        /// Sends command to ssh stream. So output can be seen through OutputAction callback
+        /// </summary>
+        public void SendCommandToStream(string command)
         {
             _shellStream.DataReceived -= _shellStreamHandler;
-            _shellWriterStream.WriteLine("sh " + SolutionManager.ActiveProject.RemoteScriptName);
+            _shellWriterStream.WriteLine(command);
             _shellStream.DataReceived += _shellStreamHandler;
         }
 
-        public void StopProgram()
-        {
-            _sshClient.RunCommand("killall mono");
-        }
-    }
-
-    public class SolutionManager
-    {
-        public SolutionManager(string name)
-        {
-            FullName = name;
-            Projects = new List<UploadProjectInfo>();
-        }
-
-        public SolutionManager(string name, IList<string> projects)
-        {
-            FullName = name;
-            Projects = new List<UploadProjectInfo>();
-            foreach (var project in projects)
-            {
-                Projects.Add(new UploadProjectInfo(project));
-            }
-        }
-
-        public List<UploadProjectInfo> Projects { get; private set; }
-        public string FullName { get; private set; }
-        public UploadProjectInfo ActiveProject { get; set; }
-
-        public void UpdateProjects(IList<string> newProjects)
-        {
-            var oldProjects = Projects.Select(x => x.ProjectFilePath).ToList();
-            foreach (var i in newProjects.Except(oldProjects))
-            {
-                Projects.Add(new UploadProjectInfo(i));
-            }
-            foreach (var i in oldProjects.Except(newProjects))
-            {
-                Projects.RemoveAll(x => x.ProjectFilePath == i);
-            }
-        }
     }
 }
