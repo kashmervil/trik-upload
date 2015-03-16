@@ -44,6 +44,7 @@ namespace Trik.Upload_Extension
                 {
                     for (var i = (uint) 0; i < iterations; i++)
                     {
+                        if (worker.CancellationPending) break;
                         _statusbar.Progress(ref _statusbarCookie, 1, text + " " + messageTail, i, iterations);
                         messageTail = "." + ((messageTail.Length < 3) ? messageTail : "");
                         Thread.Sleep(period/iterations);

@@ -14,8 +14,6 @@ namespace Trik.Upload_Extension
             if (ProjectName == null)
                 throw new InvalidOperationException("Unable to find a project file: " + projectFilePath);
             ProjectLocalBuildPath = Path.GetDirectoryName(projectFilePath) + @"\bin\Release\";
-            if (!Directory.Exists(ProjectLocalBuildPath))
-                Directory.CreateDirectory(ProjectLocalBuildPath);
             //Invalid characters replacing routine e.g "project with spaces-and-dashes" ==> "project\ with\ spaces_and_dashes" 
             //which is a valid representation for path/name with spaces in linux 
             var properName = ProjectName.Replace(" ", @"\ ").Replace("-", "_");

@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.Design;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using EnvDTE;
@@ -218,7 +219,7 @@ namespace Trik.Upload_Extension
 
             if ("Release" != buildConfiguration)
             {
-                const string message = "Use Release build for better performance. Do not forget to build solution before uploading";
+                const string message = "Use Release build for better performance. Do not forget to Build solution before uploading";
                 VS.WindowPane.WriteLine(message);
                 VS.Statusbar.SetText("Please change Solution Configuration option. " + message);
                 _uploadToolbar.Upload.Enabled = true;
@@ -229,26 +230,29 @@ namespace Trik.Upload_Extension
             {
                 SolutionManager = new SolutionManager(solution.FullName,
                     VS.GetSolutionProjects(solution.Projects), Uploader);
-                if (SolutionManager.Projects.Count == 1)
-                    SolutionManager.ActiveProject = SolutionManager.Projects[0];
-                else
-                {
-                    const string message = "Please select a project to upload in Properties";
-                    VS.Statusbar.SetText(message);
-                    VS.WindowPane.WriteLine("You opened a new solution. Your solution has more than one project " +
-                                          message);
-                    return;
-                }
+                SolutionManager.ActiveProject = SolutionManager.Projects[0];
             }
             else
             {
                 var projects = VS.GetSolutionProjects(solution);
                 await Task.Run(() => SolutionManager.UpdateProjects(projects));
             }
+            
+            switch (solution.SolutionBuild.BuildState)
+            {
+                case vsBuildState.vsBuildStateNotStarted:
+                    await Task.Run(() => solution.SolutionBuild.Build(true));
+                    break;
+                case vsBuildState.vsBuildStateInProgress:
+                    VS.WindowPane.WriteLine("Wait Until Build is finished");
+                    return;
+            }
+
             var activeProjectName = SolutionManager.ActiveProject.ProjectName;
             VS.Statusbar.Progress(8000, "Uploading " + activeProjectName);
             VS.WindowPane.Activate();
             VS.WindowPane.WriteLine(activeProjectName);
+
             var error = await SolutionManager.UploadActiveProjectAsync();
             await VS.Statusbar.StopProgressAsync();
             if (error.Length != 0)
@@ -276,31 +280,23 @@ namespace Trik.Upload_Extension
             _uploadToolbar.Upload.Enabled = false;
             const int dueTime = 11000; //Usual time is taken for connection with a controller
             VS.Statusbar.Progress(dueTime, "Connecting to " + ip);
-            var error = "";
             Uploader = new Uploader(ip) {OutputAction = VS.WindowPane.WriteLine};
             await Task.Run(async () =>
             {
                 try
                 {
                     Uploader.Connect();
-                }
-                catch (Exception exeption)
-                {
-                    error = exeption.Message;
-                }
-                await VS.Statusbar.StopProgressAsync();
-                if (error == "")
-                {
                     VS.Statusbar.SetText("Connected!");
                     VS.WindowPane.WriteLine("Connected to " + ip);
-
+                    await VS.Statusbar.StopProgressAsync();
                     _uploadToolbar.Upload.Enabled = true;
                     _uploadToolbar.Properties.Enabled = true;
                 }
-                else
+                catch (Exception exeption)
                 {
+                    Task.WaitAny(VS.Statusbar.StopProgressAsync());
                     VS.Statusbar.SetText("Connection attempt failed. See Output pane for details");
-                    VS.WindowPane.WriteLine(error);
+                    VS.WindowPane.WriteLine(exeption.Message);
                     Uploader = null;
                 }
                 IsConnecting = false;

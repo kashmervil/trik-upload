@@ -86,9 +86,8 @@ namespace Trik.Upload_Extension
 
         public void UploadFile(FileInfo localFileInfo, string remotePath)
         {
-            _logger("Uploading " + localFileInfo.FullName); 
+            _logger("Uploading " + Path.GetFileName(localFileInfo.Name)); 
             _scpClient.Upload(localFileInfo, remotePath);
-            _logger( localFileInfo.Name + " Uploaded"); 
         }
         /// <summary>
         /// Executes shell command without any output
