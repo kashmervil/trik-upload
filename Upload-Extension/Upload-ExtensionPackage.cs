@@ -27,11 +27,12 @@ namespace Trik.Upload_Extension
 #if DEBUG
         private ObservableCollection<string> _ips = new ObservableCollection<string>{"10.0.40.127", "10.0.40.161"};
 #else
-        private readonly ObservableCollection<string> _ips = new ObservableCollection<string> {"192.168.1.1"};
+        private readonly ObservableCollection<string> _ips = new ObservableCollection<string> {"10.0.40.126"};
 #endif
         private UploadToolbar _uploadToolbar;
         private IDE VS { get; set; }
         private SolutionManager SolutionManager { get; set; }
+        private bool IsConnecting { get; set; }
 
         public UploadExtensionPackage()
         {
@@ -121,28 +122,27 @@ namespace Trik.Upload_Extension
             if (args.OutValue != IntPtr.Zero)
             {
                 Marshal.GetNativeVariantForObject(_uploadToolbar.DropDownListMessage, args.OutValue);
+                return;
             }
-            else
+
+            var inValue = args.InValue as string;
+            if (inValue == null) return;
+            if (inValue == _uploadToolbar.OptionsMessage)
             {
-                var inValue = args.InValue as string;
-                if (inValue == null) return;
-                if (inValue != _uploadToolbar.OptionsMessage)
-                {
-                    _uploadToolbar.DropDownListMessage = inValue;
-                    if (Uploader == null || Uploader.Ip != inValue)
-                        ConnectToTargetCallback(inValue);
-                }
-                else
-                {
-                    var window = new Targets {ListBoxTargets = {ItemsSource = _ips}};
-                    window.ShowDialog();
-                }
+                var window = new Targets {ListBoxTargets = {ItemsSource = _ips}};
+                window.ShowDialog();
+                return;
             }
+
+            if (IsConnecting || (Uploader != null && Uploader.Ip == inValue)) return;
+            _uploadToolbar.DropDownListMessage = inValue;
+            ConnectToTargetCallback(inValue);
         }
 
         private void PropertiesCallback(object sender, EventArgs e)
         {
             var solution = ((DTE2) GetService(typeof (DTE))).Solution;
+            var d = solution.IsDirty;
             var solutionProjects = VS.GetSolutionProjects(solution.Projects);
 
             if (SolutionManager == null ||
@@ -166,8 +166,10 @@ namespace Trik.Upload_Extension
             propertiesWindow.ShowDialog();
             if (SolutionManager.ActiveProject == currentProject) return;
             if (SolutionManager.ActiveProject == null)
-                throw new Exception("Properties window did work properly");
-            VS.Statusbar.SetText("Switched to " + SolutionManager.ActiveProject.ProjectName);
+                throw new Exception("Properties window did not work properly");
+            var message = "Active project changed to " + SolutionManager.ActiveProject.ProjectName;
+            VS.Statusbar.SetText(message);
+            VS.WindowPane.WriteLine(message);
             if (SolutionManager.ActiveProject.UploadedFiles.Count == 0)
             {
                 _uploadToolbar.RunProgram.Enabled = false;
@@ -216,7 +218,7 @@ namespace Trik.Upload_Extension
 
             if ("Release" != buildConfiguration)
             {
-                const string message = "Use Release build for better performance";
+                const string message = "Use Release build for better performance. Do not forget to build solution before uploading";
                 VS.WindowPane.WriteLine(message);
                 VS.Statusbar.SetText("Please change Solution Configuration option. " + message);
                 _uploadToolbar.Upload.Enabled = true;
@@ -268,6 +270,7 @@ namespace Trik.Upload_Extension
         private async void ConnectToTargetCallback(string ip)
         {
             _uploadToolbar.RunProgram.Enabled = false;
+            IsConnecting = true;
             VS.WindowPane.SetName("TRIK Controller " + ip);
             VS.WindowPane.WriteLine("Connecting to " + ip);
             _uploadToolbar.Upload.Enabled = false;
@@ -298,7 +301,9 @@ namespace Trik.Upload_Extension
                 {
                     VS.Statusbar.SetText("Connection attempt failed. See Output pane for details");
                     VS.WindowPane.WriteLine(error);
+                    Uploader = null;
                 }
+                IsConnecting = false;
             });
         }
 

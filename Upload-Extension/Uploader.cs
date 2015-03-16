@@ -16,6 +16,7 @@ namespace Trik.Upload_Extension
         private ShellStream _shellStream;
         private EventHandler<ShellDataEventArgs> _shellStreamHandler;
         private StreamWriter _shellWriterStream;
+        private Action<string> _logger;
 
         public Uploader(string ip)
         {
@@ -29,7 +30,7 @@ namespace Trik.Upload_Extension
             set
             {
                 if (_shellStream != null) _shellStream.DataReceived -= _shellStreamHandler;
-
+                _logger = value;
                 _shellStreamHandler = (sender, args) => value(Encoding.UTF8.GetString(args.Data));
             }
         }
@@ -85,7 +86,9 @@ namespace Trik.Upload_Extension
 
         public void UploadFile(FileInfo localFileInfo, string remotePath)
         {
+            _logger("Uploading " + localFileInfo.FullName); 
             _scpClient.Upload(localFileInfo, remotePath);
+            _logger( localFileInfo.Name + " Uploaded"); 
         }
         /// <summary>
         /// Executes shell command without any output
