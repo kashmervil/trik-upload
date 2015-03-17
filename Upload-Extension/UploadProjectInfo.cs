@@ -10,10 +10,16 @@ namespace Trik.Upload_Extension
         public UploadProjectInfo(string projectFilePath)
         {
             ProjectFilePath = projectFilePath;
-            ProjectName = Path.GetFileNameWithoutExtension(projectFilePath);
+            Initialize();
+            UploadedFiles = new Dictionary<string, DateTime>();
+        }
+
+        public void Initialize()
+        {
+            ProjectName = Path.GetFileNameWithoutExtension(ProjectFilePath);
             if (ProjectName == null)
-                throw new InvalidOperationException("Unable to find a project file: " + projectFilePath);
-            ProjectLocalBuildPath = Path.GetDirectoryName(projectFilePath) + @"\bin\Release\";
+                throw new InvalidOperationException("Unable to find a project file: " + ProjectFilePath);
+            ProjectLocalBuildPath = Path.GetDirectoryName(ProjectFilePath) + @"\bin\Release\";
             //Invalid characters replacing with escape characters/ quotes (e.g project with spaces-and-dashes ==> "project with spaces_and_dashes") 
             //which is a valid representation for path/name with special chars in linux 
             var properName = "\"" + ProjectName.Replace("-", "_") + "\"";
@@ -24,7 +30,6 @@ namespace Trik.Upload_Extension
                     .Where(x => x.EndsWith(".exe") && !x.EndsWith("vshost.exe"))
                     .ToArray();
             ExecutableFileName = (executables.Length == 1) ? Path.GetFileName(executables[0]) : properName + ".exe";
-            UploadedFiles = new Dictionary<string, DateTime>();
         }
 
         public string ProjectName { get; private set; }

@@ -60,6 +60,9 @@ namespace Trik.Upload_Extension
                 {
                     if (ActiveProject.UploadedFiles.Count == 0)
                     {
+                        ActiveProject.Initialize();//Or reinitialize (e.g You have changed something in your project's configuration
+                                                   //and want these changes to take place in remote machine.
+                                                   //Make clean of your project -> upload -> build -> upload 
                         var command = String.Format("mkdir {0}; ln /home/root/trik-sharp/uploads/{1} {0}{1}; {2}",
                             ActiveProject.FilesUploadPath, Path.GetFileName(_libconwrapPath), ActiveProject.Script);
                         _uploader.ExecuteCommand(command);

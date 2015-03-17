@@ -2,7 +2,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.Design;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using EnvDTE;
@@ -143,7 +142,6 @@ namespace Trik.Upload_Extension
         private void PropertiesCallback(object sender, EventArgs e)
         {
             var solution = ((DTE2) GetService(typeof (DTE))).Solution;
-            var d = solution.IsDirty;
             var solutionProjects = VS.GetSolutionProjects(solution.Projects);
 
             if (SolutionManager == null ||
@@ -215,7 +213,6 @@ namespace Trik.Upload_Extension
             _uploadToolbar.RunProgram.Enabled = false;
             var solution = ((DTE2) GetService(typeof (DTE))).Solution;
             var buildConfiguration = solution.SolutionBuild.ActiveConfiguration.Name;
-            var d = solution.IsDirty;
 
             if ("Release" != buildConfiguration)
             {
