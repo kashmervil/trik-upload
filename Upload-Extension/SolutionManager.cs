@@ -8,8 +8,10 @@ namespace Trik.Upload_Extension
 {
     internal class SolutionManager
     {
+        private readonly string _libconwrapPath = Path.GetDirectoryName(typeof (Uploader).Assembly.Location) +
+                                                  @"\Resources\libconWrap.so.1.0.0";
+
         private readonly Uploader _uploader;
-        private readonly string _libconwrapPath = Path.GetDirectoryName(typeof (Uploader).Assembly.Location) + @"\Resources\libconWrap.so.1.0.0";
 
         public SolutionManager(string name, Uploader uploader)
         {
@@ -45,6 +47,7 @@ namespace Trik.Upload_Extension
                 Projects.RemoveAll(x => x.ProjectFilePath == i);
             }
         }
+
         public async Task<string> UploadActiveProjectAsync()
         {
             return await Task.Run(() => //TODO: Remove this ***
@@ -57,14 +60,21 @@ namespace Trik.Upload_Extension
                 {
                     if (ActiveProject.UploadedFiles.Count == 0)
                     {
-                        _uploader.ExecuteCommand("mkdir " + ActiveProject.FilesUploadPath + "; " + ActiveProject.Script);
-                        _uploader.UploadFile(new FileInfo(_libconwrapPath),
-                            ActiveProject.FilesUploadPath + Path.GetFileName(_libconwrapPath));
+                        var command = String.Format("mkdir {0}; ln /home/root/trik-sharp/uploads/{1} {0}{1}; {2}",
+                            ActiveProject.FilesUploadPath, Path.GetFileName(_libconwrapPath), ActiveProject.Script);
+                        _uploader.ExecuteCommand(command);
                     }
 
-                    var newFiles = Directory.GetFiles(ActiveProject.ProjectLocalBuildPath);
+                    var newFiles =
+                        Directory.GetFiles(ActiveProject.ProjectLocalBuildPath).Where(s => !(s.Contains(".vshost") 
+                                                                                             || s.EndsWith(".config")
+                                                                                             || s.EndsWith(".pdb")));
                     var uploadedFiles = ActiveProject.UploadedFiles;
-
+                    var filesToRemove = uploadedFiles.Keys.Where(s => !newFiles.Contains(s)).ToArray();
+                    var args = String.Join(" ", filesToRemove.Select(s => "\"" + ActiveProject.FilesUploadPath + Path.GetFileName(s) + "\""));
+                    if (args.Length != 0) 
+                        _uploader.ExecuteCommand("rm " + args);
+                    Array.ForEach(filesToRemove, x => ActiveProject.UploadedFiles.Remove(x));
                     foreach (var file in newFiles)
                     {
                         if (!uploadedFiles.ContainsKey(file))
@@ -84,7 +94,11 @@ namespace Trik.Upload_Extension
                 return error;
             });
         }
-        public void RunProgram(){}
+
+        public void RunProgram()
+        {
+            _uploader.SendCommandToStream(". " + ActiveProject.RemoteScriptName);
+        }
 
         public void StopProgram()
         {

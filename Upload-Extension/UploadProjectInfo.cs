@@ -14,9 +14,9 @@ namespace Trik.Upload_Extension
             if (ProjectName == null)
                 throw new InvalidOperationException("Unable to find a project file: " + projectFilePath);
             ProjectLocalBuildPath = Path.GetDirectoryName(projectFilePath) + @"\bin\Release\";
-            //Invalid characters replacing routine e.g "project with spaces-and-dashes" ==> "project\ with\ spaces_and_dashes" 
-            //which is a valid representation for path/name with spaces in linux 
-            var properName = ProjectName.Replace(" ", @"\ ").Replace("-", "_");
+            //Invalid characters replacing with escape characters/ quotes (e.g project with spaces-and-dashes ==> "project with spaces_and_dashes") 
+            //which is a valid representation for path/name with special chars in linux 
+            var properName = "\"" + ProjectName.Replace("-", "_") + "\"";
             RemoteScriptName = @"/home/root/trik/scripts/trik-sharp/" + properName;
             FilesUploadPath = @"/home/root/trik-sharp/uploads/" + properName + "/";
             var executables =
@@ -41,12 +41,8 @@ namespace Trik.Upload_Extension
             {
                 var text =
                     "echo \"#!/bin/sh\n"
-                    + "#killall trikGui\n"
-                    + "mono " + FilesUploadPath + ExecutableFileName + " $* \n"
-                    + "#cd ~/trik/\n"
-                    + "#./trikGui -qws &> /dev/null &"
-                    + "#some other commands\""
-                    + " > " + RemoteScriptName
+                    + "mono " + FilesUploadPath + ExecutableFileName
+                    + "\" > " + RemoteScriptName
                     + "; chmod +x " + RemoteScriptName;
                 return text;
             }

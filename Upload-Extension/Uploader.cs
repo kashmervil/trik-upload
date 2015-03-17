@@ -13,6 +13,10 @@ namespace Trik.Upload_Extension
         private readonly ScpClient _scpClient;
         private readonly SshClient _sshClient;
         private readonly Timer _timer = new Timer(5000.0);
+
+        private readonly string _libconwrapPath = Path.GetDirectoryName(typeof (Uploader).Assembly.Location) +
+                                                  @"\Resources\libconWrap.so.1.0.0";
+
         private ShellStream _shellStream;
         private EventHandler<ShellDataEventArgs> _shellStreamHandler;
         private StreamWriter _shellWriterStream;
@@ -60,6 +64,8 @@ namespace Trik.Upload_Extension
             _timer.Elapsed += KeepAlive;
             _sshClient.RunCommand(
                 "mkdir /home/root/trik-sharp /home/root/trik-sharp/uploads /home/root/trik/scripts/trik-sharp");
+            Task.Run(() => _scpClient.Upload(new FileInfo(_libconwrapPath),
+                "/home/root/trik-sharp/uploads/" + Path.GetFileName(_libconwrapPath)));
         }
 
         private void KeepAlive(object sender, ElapsedEventArgs e)
@@ -86,20 +92,24 @@ namespace Trik.Upload_Extension
 
         public void UploadFile(FileInfo localFileInfo, string remotePath)
         {
-            _logger("Uploading " + Path.GetFileName(localFileInfo.Name)); 
+            _logger("Uploading " + Path.GetFileName(localFileInfo.Name));
             _scpClient.Upload(localFileInfo, remotePath);
         }
+
         /// <summary>
-        /// Executes shell command without any output
+        ///     Executes shell command without any output
         /// </summary>
         /// <param name="command"></param>
         public void ExecuteCommand(string command)
         {
-            _sshClient.RunCommand(command);
+            var d = _sshClient.RunCommand(command);
+#if DEBUG
+            _logger(String.Format("input: {0} \noutput: {1}\nerror: {2}", command, d.Result, d.Error));
+#endif
         }
-        
+
         /// <summary>
-        /// Sends command to ssh stream. So output can be seen through OutputAction callback
+        ///     Sends command to ssh stream. So output can be seen through OutputAction callback
         /// </summary>
         public void SendCommandToStream(string command)
         {
@@ -107,6 +117,5 @@ namespace Trik.Upload_Extension
             _shellWriterStream.WriteLine(command);
             _shellStream.DataReceived += _shellStreamHandler;
         }
-
     }
 }

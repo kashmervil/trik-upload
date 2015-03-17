@@ -26,9 +26,9 @@ namespace Trik.Upload_Extension
     {
         private Uploader Uploader { get; set; }
 #if DEBUG
-        private ObservableCollection<string> _ips = new ObservableCollection<string>{"10.0.40.127", "10.0.40.161"};
+        private ObservableCollection<string> _ips = new ObservableCollection<string>{"10.0.40.126", "10.0.40.161"};
 #else
-        private readonly ObservableCollection<string> _ips = new ObservableCollection<string> {"10.0.40.126"};
+        private readonly ObservableCollection<string> _ips = new ObservableCollection<string> {"192.168.1.1"};
 #endif
         private UploadToolbar _uploadToolbar;
         private IDE VS { get; set; }
@@ -219,7 +219,7 @@ namespace Trik.Upload_Extension
 
             if ("Release" != buildConfiguration)
             {
-                const string message = "Use Release build for better performance. Do not forget to Build solution before uploading";
+                const string message = "Use Release build for better performance";
                 VS.WindowPane.WriteLine(message);
                 VS.Statusbar.SetText("Please change Solution Configuration option. " + message);
                 _uploadToolbar.Upload.Enabled = true;
