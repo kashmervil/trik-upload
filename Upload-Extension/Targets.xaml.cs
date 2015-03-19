@@ -17,6 +17,7 @@ namespace Trik.Upload_Extension
         {
             var addTarget = new NewTargetWindow {DataContext = ListBoxTargets.ItemsSource};
             addTarget.ShowDialog();
+            Close();
         }
 
         private void DeleteTargetButton_OnClick(object sender, RoutedEventArgs e)

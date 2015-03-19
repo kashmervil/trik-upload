@@ -16,6 +16,11 @@ namespace Trik.Upload_Extension
             _pane.Activate();
             _pane.OutputStringThreadSafe(message + "\n");
         }
+        internal void Write(string message)
+        {
+            _pane.Activate();
+            _pane.OutputStringThreadSafe(message);
+        }
 
         internal void Activate()
         {

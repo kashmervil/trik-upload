@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
@@ -79,10 +80,17 @@ namespace Trik.Upload_Extension
             return await Task.Run(() =>
             {
                 _timer.Elapsed -= KeepAlive;
-                _scpClient.Disconnect();
-                _scpClient.Connect();
-                _sshClient.Disconnect();
-                _sshClient.Connect();
+                try
+                {
+                    _scpClient.Disconnect();
+                    _scpClient.Connect();
+                    _sshClient.Disconnect();
+                    _sshClient.Connect();
+                }
+                catch (SshConnectionException)
+                {
+                    return false;
+                }
                 _shellStream = _sshClient.CreateShellStream("TRIK-SHELL", 80, 24, 800, 600, 1024);
                 _shellWriterStream = new StreamWriter(_shellStream) {AutoFlush = true};
                 _timer.Elapsed += KeepAlive;
@@ -116,6 +124,17 @@ namespace Trik.Upload_Extension
             _shellStream.DataReceived -= _shellStreamHandler;
             _shellWriterStream.WriteLine(command);
             _shellStream.DataReceived += _shellStreamHandler;
+        }
+
+        public void RemoveFiles(string[] files, string remoteFolder)
+        {            
+            if (files.Length == 0) return;
+            var fileNames = files.Select(Path.GetFileName);
+            ExecuteCommand("rm " + String.Join(" ", files.Select(s => "\"" + remoteFolder + s + "\"")));
+            foreach (var s in fileNames)
+            {
+                _logger("Removing " + s + " from target");
+            }
         }
     }
 }

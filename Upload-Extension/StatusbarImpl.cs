@@ -12,6 +12,7 @@ namespace Trik.Upload_Extension
         private readonly IVsStatusbar _statusbar;
         private uint _statusbarCookie;
         private BackgroundWorker _worker;
+        public bool InProgress { get; private set; }
 
         internal StatusbarImpl(IVsStatusbar statusbar)
         {
@@ -31,6 +32,8 @@ namespace Trik.Upload_Extension
 
         internal void Progress(int period, string text)
         {
+            if (InProgress) return;
+            InProgress = true;
             _resetEvent.Reset();
             _worker = new BackgroundWorker {WorkerSupportsCancellation = true};
             _worker.DoWork += (sender, args) =>
@@ -57,7 +60,9 @@ namespace Trik.Upload_Extension
 
         internal async Task<bool> StopProgressAsync()
         {
-            _worker.RunWorkerCompleted += (sender, args) => _statusbar.Progress(ref _statusbarCookie, 1, "", 0, 0);
+            if (!InProgress) return true;
+            _worker.RunWorkerCompleted += (sender, args) => { _statusbar.Progress(ref _statusbarCookie, 1, "", 0, 0);
+                                                              InProgress = false; };
             _worker.CancelAsync();
             return await Task.Run(() => _resetEvent.WaitOne());
         }

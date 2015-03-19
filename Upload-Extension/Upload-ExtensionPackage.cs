@@ -169,30 +169,15 @@ namespace Trik.Upload_Extension
         {
             VS.WindowPane.WriteLine("========== Starting an Application on TRIK ==========\n");
             _uploadToolbar.StopProgram.Enabled = true;
-            Task.Run(() =>
-            {
-                VS.Statusbar.SetText("Running application on TRIK. See output pane for more information");
-                try
-                {
-                    SolutionManager.RunProgram();
-                }
-                catch (Exception exception)
-                {
-                    VS.Statusbar.SetText(
-                        "Network error occurred while running an application. Trying to reconnect");
-                    _uploadToolbar.RunProgram.Enabled = false;
-                    _uploadToolbar.Upload.Enabled = false;
-                    VS.WindowPane.WriteLine(exception.Message);
-
-                    Reconnect();
-                }
-            });
+            VS.Statusbar.SetText("Running application on TRIK. See output pane for more information");
+            SolutionManager.RunProgram();
         }
 
         private async void UploadToTargetCallback(object sender, EventArgs e)
         {
             _uploadToolbar.Upload.Enabled = false;
             _uploadToolbar.RunProgram.Enabled = false;
+            _uploadToolbar.Properties.Enabled = false;
             var solution = ((DTE2) GetService(typeof (DTE))).Solution;
             var buildConfiguration = solution.SolutionBuild.ActiveConfiguration.Name;
 
@@ -211,11 +196,6 @@ namespace Trik.Upload_Extension
                     VS.GetSolutionProjects(solution.Projects), Uploader);
                 SolutionManager.ActiveProject = SolutionManager.Projects[0];
             }
-            else
-            {
-                var projects = VS.GetSolutionProjects(solution);
-                await Task.Run(() => SolutionManager.UpdateProjects(projects));
-            }
             
             switch (solution.SolutionBuild.BuildState)
             {
@@ -226,7 +206,9 @@ namespace Trik.Upload_Extension
                     VS.WindowPane.WriteLine("Wait Until Build is finished");
                     return;
             }
-            var text = "Uploading " + SolutionManager.ActiveProject.ProjectName;
+            var activeProject = SolutionManager.ActiveProject;
+            var uploadedFiles = activeProject.UploadedFiles.Count;
+            var text = "Uploading " + activeProject.ProjectName;
             VS.Statusbar.Progress(8000, text);
             VS.WindowPane.Activate();
             VS.WindowPane.WriteLine(text);
@@ -235,13 +217,28 @@ namespace Trik.Upload_Extension
             await VS.Statusbar.StopProgressAsync();
             if (error.Length != 0)
             {
-                VS.WindowPane.WriteLine(error);
+
+                VS.WindowPane.WriteLine("\nNetwork error is occured: " + error);
                 Reconnect();
-                if (Uploader != null) UploadToTargetCallback(sender, e);
+                if (Uploader != null)
+                {
+                    VS.WindowPane.Write("Resume ");                    
+                    UploadToTargetCallback(sender, e);
+                }
             }
             else
             {
-                var message = SolutionManager.ActiveProject.ProjectName + " Uploaded!";
+                if (activeProject.UploadedFiles.Count == 0 && uploadedFiles == 0)
+                {
+                    var expandedMessage = activeProject.ProjectName + "'s Release folder is empty, the same as corresponding remote folder.\n";
+                    const string shortMessage = "Please Build Solution before uploading!";
+                    VS.Statusbar.SetText(shortMessage);
+                    VS.WindowPane.WriteLine(expandedMessage + shortMessage);
+                    _uploadToolbar.Upload.Enabled = true;
+                    _uploadToolbar.Properties.Enabled = true;
+                    return;
+                }
+                var message = activeProject.ProjectName + " Uploaded!";
                 VS.Statusbar.SetText(message);
                 VS.WindowPane.WriteLine(message);
                 _uploadToolbar.RunProgram.Enabled = true;
@@ -284,29 +281,28 @@ namespace Trik.Upload_Extension
 
         private async void Reconnect()
         {
-            string error = null;
-            try
-            {
-                const string tryingToReconnect = "Trying to reconnect";
-                VS.WindowPane.WriteLine(tryingToReconnect);
-                VS.Statusbar.Progress(8000, tryingToReconnect);
-                await Uploader.ReconnectAsync();
-            }
-            catch (Exception)
-            {
-                error = "Can't connect to TRIK. Check connection and try again";
-                Uploader = null;
-                //_uploadToolbar.Connect.Enabled = true;
-                _uploadToolbar.RunProgram.Enabled = false;
-                _uploadToolbar.Upload.Enabled = false;
-            }
+            if (IsConnecting) return;
+            IsConnecting = true;
+            const string tryingToReconnect = "Trying to reconnect";
+            _uploadToolbar.RunProgram.Enabled = false;
+            _uploadToolbar.Upload.Enabled = false;
+            _uploadToolbar.StopProgram.Enabled = false;
+            VS.WindowPane.WriteLine(tryingToReconnect);
+            VS.Statusbar.Progress(8000, tryingToReconnect);
+            var connected = await Uploader.ReconnectAsync();
             await VS.Statusbar.StopProgressAsync();
-
-            var message = error ?? "Connected Successfully!";
+            var message = "Connected Successfully!";
+            var flag = true;
+            if (!connected)
+            {
+                message = "Can't connect to TRIK. Check connection and try again";
+                flag = false;
+                Uploader = null;
+            }
+            _uploadToolbar.Upload.Enabled = flag;
             VS.WindowPane.WriteLine(message);
             VS.Statusbar.SetText(message);
-            _uploadToolbar.Upload.Enabled = true;
-            _uploadToolbar.Properties.Enabled = true;
+            IsConnecting = false;
         }
     }
 }

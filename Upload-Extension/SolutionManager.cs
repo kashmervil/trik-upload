@@ -53,31 +53,33 @@ namespace Trik.Upload_Extension
             return await Task.Run(() => //TODO: Remove this ***
             {
                 var error = "";
-                if (ActiveProject == null)
-                    throw new InvalidOperationException(
-                        "Calling UploadActiveProjectAsync before setting ActiveProject property");
                 try
                 {
+                    if (ActiveProject == null)
+                        throw new InvalidOperationException(
+                            "Calling UploadActiveProjectAsync before setting ActiveProject property");
+
                     if (ActiveProject.UploadedFiles.Count == 0)
                     {
-                        ActiveProject.Initialize();//Or reinitialize (e.g You have changed something in your project's configuration
-                                                   //and want these changes to take place in remote machine.
-                                                   //Make clean of your project -> upload -> build -> upload 
+                        ActiveProject.Initialize();
+                        //Or reinitialize (e.g You have changed something in your project's configuration
+                        //and want these changes to take place in remote machine.
+                        //Make clean of your project -> upload -> build -> upload 
                         var command = String.Format("mkdir {0}; ln /home/root/trik-sharp/uploads/{1} {0}{1}; {2}",
                             ActiveProject.FilesUploadPath, Path.GetFileName(_libconwrapPath), ActiveProject.Script);
                         _uploader.ExecuteCommand(command);
                     }
 
                     var newFiles =
-                        Directory.GetFiles(ActiveProject.ProjectLocalBuildPath).Where(s => !(s.Contains(".vshost") 
+                        Directory.GetFiles(ActiveProject.ProjectLocalBuildPath).Where(s => !(s.Contains(".vshost")
                                                                                              || s.EndsWith(".config")
                                                                                              || s.EndsWith(".pdb")));
                     var uploadedFiles = ActiveProject.UploadedFiles;
                     var filesToRemove = uploadedFiles.Keys.Where(s => !newFiles.Contains(s)).ToArray();
-                    var args = String.Join(" ", filesToRemove.Select(s => "\"" + ActiveProject.FilesUploadPath + Path.GetFileName(s) + "\""));
-                    if (args.Length != 0) 
-                        _uploader.ExecuteCommand("rm " + args);
+                    _uploader.RemoveFiles(filesToRemove, ActiveProject.FilesUploadPath);
                     Array.ForEach(filesToRemove, x => ActiveProject.UploadedFiles.Remove(x));
+
+
                     foreach (var file in newFiles)
                     {
                         if (!uploadedFiles.ContainsKey(file))
