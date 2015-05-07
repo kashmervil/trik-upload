@@ -110,8 +110,8 @@ namespace Trik.Upload_Extension
         /// <param name="command"></param>
         public void ExecuteCommand(string command)
         {
-            var d = _sshClient.RunCommand(command);
 #if DEBUG
+            var d = _sshClient.RunCommand(command);
             _logger(String.Format("input: {0} \noutput: {1}\nerror: {2}", command, d.Result, d.Error));
 #endif
         }

@@ -134,7 +134,7 @@ namespace Trik.Upload_Extension
                 SolutionManager.ActiveProject = SolutionManager.Projects[0];
             }
             SolutionManager.UpdateProjects(solutionProjects);
-            var currentProject = SolutionManager.ActiveProject ?? SolutionManager.Projects[0];
+            var currentProject = SolutionManager.ActiveProject;
             var propertiesWindow = new PropertiesWindow
             {
                 DataContext = SolutionManager,
@@ -160,6 +160,7 @@ namespace Trik.Upload_Extension
         private void StopProgramCallback(object sender, EventArgs e)
         {
             VS.WindowPane.WriteLine("========== Killing TRIK application ==========\n");
+            VS.Statusbar.SetText("Killing Application");
             SolutionManager.StopProgram();
             _uploadToolbar.StopProgram.Enabled = false;
         }

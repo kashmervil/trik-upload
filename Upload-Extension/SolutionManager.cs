@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Trik.Upload_Extension
@@ -107,7 +108,7 @@ namespace Trik.Upload_Extension
 
         public void StopProgram()
         {
-            _uploader.ExecuteCommand("killall mono");
+            _uploader.SendCommandToStream(Encoding.ASCII.GetString(new byte[]{3})); // Ctrl+C code
         }
     }
 }
