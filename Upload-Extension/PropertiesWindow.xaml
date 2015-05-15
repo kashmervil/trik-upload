@@ -6,8 +6,8 @@
     <StackPanel Name="Panel" Margin="10,10,10,50">
         <ComboBox Name="ComboBox" />
         <Grid>
-            <Button Margin="0,18,1,-49" Click="ButtonOkay_Click" Content="OK" HorizontalAlignment="Right" Width="86" />
-            <Button Margin="1,18,117,-49" Content="Cancel" Click="ButtonClose_OnClicked" />
+            <Button Margin="0,18,119,-49" Click="ButtonOkay_Click" Content="OK" HorizontalAlignment="Right" Width="86" />
+            <Button Margin="117,18,1,-49" Content="Cancel" Click="ButtonClose_OnClicked" />
 
         </Grid>
     </StackPanel>

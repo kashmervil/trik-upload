@@ -110,10 +110,15 @@ namespace Trik.Upload_Extension
         /// <param name="command"></param>
         public void ExecuteCommand(string command)
         {
-#if DEBUG
             var d = _sshClient.RunCommand(command);
+#if DEBUG
             _logger(String.Format("input: {0} \noutput: {1}\nerror: {2}", command, d.Result, d.Error));
 #endif
+        }
+
+        public void SendIdle() //Renci.SSH doesn't seem to set sshClient.IsConnected correctly (according to connection state). This hack helps to get the state
+        {
+            ExecuteCommand(" "); //TODO: Write Tests. Replace ssh backend if needed
         }
 
         /// <summary>

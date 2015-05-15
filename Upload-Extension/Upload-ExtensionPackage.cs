@@ -212,7 +212,7 @@ namespace Trik.Upload_Extension
             var text = "Uploading " + activeProject.ProjectName;
             VS.Statusbar.Progress(8000, text);
             VS.WindowPane.Activate();
-            VS.WindowPane.WriteLine(text);
+            VS.WindowPane.WriteLine("\n" + text);
 
             var error = await SolutionManager.UploadActiveProjectAsync();
             await VS.Statusbar.StopProgressAsync();
@@ -220,7 +220,7 @@ namespace Trik.Upload_Extension
             {
 
                 VS.WindowPane.WriteLine("\nNetwork error is occured: " + error);
-                Reconnect();
+                await Reconnect();
                 if (Uploader != null)
                 {
                     VS.WindowPane.Write("Resume ");                    
@@ -241,7 +241,7 @@ namespace Trik.Upload_Extension
                 }
                 var message = activeProject.ProjectName + " Uploaded!";
                 VS.Statusbar.SetText(message);
-                VS.WindowPane.WriteLine(message);
+                VS.WindowPane.WriteLine("\n" + message);
                 _uploadToolbar.RunProgram.Enabled = true;
                 _uploadToolbar.Upload.Enabled = true;
                 _uploadToolbar.Properties.Enabled = true;
@@ -280,7 +280,7 @@ namespace Trik.Upload_Extension
             });
         }
 
-        private async void Reconnect()
+        private async Task Reconnect()
         {
             if (IsConnecting) return;
             IsConnecting = true;

@@ -59,7 +59,7 @@ namespace Trik.Upload_Extension
                     if (ActiveProject == null)
                         throw new InvalidOperationException(
                             "Calling UploadActiveProjectAsync before setting ActiveProject property");
-
+                    _uploader.SendIdle();
                     if (ActiveProject.UploadedFiles.Count == 0)
                     {
                         ActiveProject.Initialize();
