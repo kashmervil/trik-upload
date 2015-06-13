@@ -84,7 +84,7 @@
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
         <Icon guid="guidImages" id="properties" />
         <Strings>
-          <ButtonText>Propierties Window</ButtonText>
+          <ButtonText>Properties...</ButtonText>
         </Strings>
       </Button>
     </Buttons>
@@ -95,12 +95,12 @@
              id="TargetIP"
              priority="0x0100" type="DropDownCombo"
              idCommandList="GetIPList"
-             defaultWidth="120">
+             defaultWidth="125">
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
         <CommandFlag>CommandWellOnly</CommandFlag>
         <Strings>
           <CommandName>TRIK IP</CommandName>
-          <ButtonText>Enter IP</ButtonText>
+          <ButtonText>Select IP</ButtonText>
         </Strings>
       </Combo>
     </Combos>
