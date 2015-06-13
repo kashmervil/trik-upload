@@ -1,10 +1,23 @@
 ﻿<Window x:Class="Trik.Upload_Extension.NewTargetWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="New Target" Height="121" Width="226" ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
-    <Grid>
-        <TextBox Name="TargetIP" Margin="10,10,10,48" FontSize="16" TextChanged="TargetIP_TextChanged">New TRIK IP</TextBox>
-        <Button Margin="10,49,0,8" Click="Button_Click" IsDefault="True" HorizontalAlignment="Left" Width="91">OK</Button>
-        <Button Margin="119,49,10,8" Content="Cancel" IsCancel="True" />
+        Title="New address" Height="105" Width="220" ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+    <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Height="80" Width="200">
+        <TextBox Name="TargetIP" Height="22" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="10,15,10,0" FontSize="16" TextChanged="TargetIP_TextChanged" Width="180"/>
+        <TextBlock Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="13,15,0,0" IsHitTestVisible="False" Text="Enter IP here" FontSize="16" Foreground="DarkGray">
+            <TextBlock.Style>
+                <Style TargetType="{x:Type TextBlock}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Text, ElementName=TargetIP}" Value="">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <Button Height="22" Width="80" HorizontalAlignment="Left" Click="Button_Click" Content="OK" IsDefault="True" Margin="10,42,0,16" />
+        <Button Height="22" Width="80" HorizontalAlignment="Right" Content="Cancel" IsCancel="True" Margin="0,42,10,16"/>
     </Grid>
 </Window>

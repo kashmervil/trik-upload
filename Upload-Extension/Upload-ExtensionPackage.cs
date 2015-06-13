@@ -43,8 +43,8 @@ namespace Trik.Upload_Extension
             //Toolbar initialization
             _uploadToolbar = new UploadToolbar
             {
-                DropDownListMessage = "Enter TRIK Address",
-                OptionsMessage = "*Manage TRIK profiles"
+                DropDownListMessage = "Select TRIK address",
+                OptionsMessage = "*Manage TRIK addresses"
             };
 
 
@@ -204,7 +204,7 @@ namespace Trik.Upload_Extension
                     await Task.Run(() => solution.SolutionBuild.Build(true));
                     break;
                 case vsBuildState.vsBuildStateInProgress:
-                    VS.WindowPane.WriteLine("Wait Until Build is finished");
+                    VS.WindowPane.WriteLine("Wait until Build is finished");
                     return;
             }
             var activeProject = SolutionManager.ActiveProject;
