@@ -1,0 +1,44 @@
+﻿<Window x:Class="Trik.Upload_Extension.TargetSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="New address" Height="156.334" Width="220" ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+    <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Height="80" Width="200">
+        <TextBox Name="TargetIp"  Margin="10,-9,10,67" 
+                 FontSize="16" />
+        <TextBox Name="TargetLogin" Margin="10,18,10,40"
+                 FontSize="16" />
+        <PasswordBox Name="TargetPass" Margin="10,45,10,13" PasswordChar="*"
+                 FontSize="16" PasswordChanged="TargetPass_OnPasswordChanged"/>
+        <TextBlock Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" 
+                   Margin="13,-9,0,0" IsHitTestVisible="False" Text="Enter IP" FontSize="16" Foreground="DarkGray">
+            <TextBlock.Style>
+                <Style TargetType="{x:Type TextBlock}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Text, ElementName=TargetIp}" Value="">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <TextBlock Height="22" VerticalAlignment="Top" 
+                   Margin="13,18,107,0" IsHitTestVisible="False" Text="Enter Login" FontSize="16" Foreground="DarkGray">
+            <TextBlock.Style>
+                <Style TargetType="{x:Type TextBlock}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Text, ElementName=TargetLogin}" Value="">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <TextBlock Name="PassBlock"  Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" 
+                   Margin="13,45,0,0" IsHitTestVisible="False" Text="Enter Password" FontSize="16" Foreground="DarkGray">
+        </TextBlock>
+        <Button Click="Button_Click" Content="OK" IsDefault="True" Margin="10,72,110,-15" />
+        <Button Height="22" Width="80" HorizontalAlignment="Right" Content="Cancel" IsCancel="True" Margin="0,72,10,-14"/>
+    </Grid>
+</Window>

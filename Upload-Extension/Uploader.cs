@@ -23,11 +23,13 @@ namespace Trik.Upload_Extension
         private StreamWriter _shellWriterStream;
         private Action<string> _logger;
 
-        public Uploader(string ip)
+        public Uploader(TargetProfile p)
         {
-            Ip = ip;
-            _scpClient = new ScpClient(Ip, "root", "");
-            _sshClient = new SshClient(Ip, "root", "");
+            Ip = p.IpAddress.ToString();
+            UserName = p.Login;
+            var password = p.Pass.ToString(); //TODO: Find better ssh library and remove vulnerability breach 
+            _scpClient = new ScpClient(Ip, UserName, password);
+            _sshClient = new SshClient(Ip, UserName, password);
         }
 
         public Action<string> OutputAction
@@ -41,6 +43,7 @@ namespace Trik.Upload_Extension
         }
 
         public string Ip { get; private set; }
+        public string UserName { get; private set; }
 
         public void Dispose()
         {
@@ -100,7 +103,7 @@ namespace Trik.Upload_Extension
 
         public void UploadFile(FileInfo localFileInfo, string remotePath)
         {
-            _logger("Uploading " + Path.GetFileName(localFileInfo.Name));
+            _logger("Uploading " + Path.GetFileName(localFileInfo.Name) + "\n");
             _scpClient.Upload(localFileInfo, remotePath);
         }
 
@@ -109,10 +112,12 @@ namespace Trik.Upload_Extension
         /// </summary>
         /// <param name="command"></param>
         public void ExecuteCommand(string command)
-        {
+        {         
+#if LOG
             var d = _sshClient.RunCommand(command);
-#if DEBUG
             _logger(String.Format("input: {0} \noutput: {1}\nerror: {2}", command, d.Result, d.Error));
+#else
+            _sshClient.RunCommand(command);
 #endif
         }
 

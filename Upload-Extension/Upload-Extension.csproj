@@ -131,8 +131,8 @@
   <ItemGroup>
     <Compile Include="IDE.cs" />
     <Compile Include="Guids.cs" />
-    <Compile Include="NewTargetWindow.xaml.cs">
-      <DependentUpon>NewTargetWindow.xaml</DependentUpon>
+    <Compile Include="TargetSettingsWindow.xaml.cs">
+      <DependentUpon>TargetSettingsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="PropertiesWindow.xaml.cs">
       <DependentUpon>PropertiesWindow.xaml</DependentUpon>
@@ -145,8 +145,9 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="SolutionManager.cs" />
     <Compile Include="StatusbarImpl.cs" />
-    <Compile Include="Targets.xaml.cs">
-      <DependentUpon>Targets.xaml</DependentUpon>
+    <Compile Include="TargetProfile.cs" />
+    <Compile Include="TargetsWindow.xaml.cs">
+      <DependentUpon>TargetsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Upload-ExtensionPackage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -195,7 +196,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="NewTargetWindow.xaml">
+    <Page Include="TargetSettingsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -203,13 +204,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Targets.xaml">
+    <Page Include="TargetsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <PropertyGroup>
     <UseCodebase>true</UseCodebase>

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Design;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using EnvDTE;
 using EnvDTE80;
@@ -18,11 +20,17 @@ namespace Trik.Upload_Extension
     public sealed class UploadExtensionPackage : Package
     {
         private Uploader Uploader { get; set; }
-#if DEBUG
-        private ObservableCollection<string> _ips = new ObservableCollection<string>{"10.0.40.126", "10.0.40.161"};
-#else
-        private readonly ObservableCollection<string> _ips = new ObservableCollection<string> {"192.168.1.1"};
-#endif
+
+        private readonly Dictionary<string, TargetProfile> _targetProfiles = new Dictionary<string, TargetProfile>
+        {
+            
+#if DEBUG                
+                {"10.0.40.42", new TargetProfile(IPAddress.Parse("10.0.40.42"))}
+#else          
+                {"192.168.1.1", new TargetProfile(IPAddress.Parse("192.168.1.1"))}        
+#endif               
+        };
+
         private UploadToolbar _uploadToolbar;
         private IDE VS { get; set; }
         private SolutionManager SolutionManager { get; set; }
@@ -91,7 +99,7 @@ namespace Trik.Upload_Extension
             if (args == null) return;
             if (args.OutValue != IntPtr.Zero)
             {
-                var allOptions = _ips.ToList();
+                var allOptions = _targetProfiles.Keys.ToList();
                 allOptions.Add(_uploadToolbar.OptionsMessage);
                 Marshal.GetNativeVariantForObject(allOptions.ToArray(), args.OutValue);
             }
@@ -111,14 +119,18 @@ namespace Trik.Upload_Extension
             if (inValue == null) return;
             if (inValue == _uploadToolbar.OptionsMessage)
             {
-                var window = new Targets {ListBoxTargets = {ItemsSource = _ips}};
+                var window = new TargetsWindow
+                {
+                    DataContext = _targetProfiles,
+                    ListBoxTargets = {ItemsSource = new ObservableCollection<string>(_targetProfiles.Keys)}
+                };
                 window.ShowDialog();
                 return;
             }
 
             if (IsConnecting || (Uploader != null && Uploader.Ip == inValue)) return;
             _uploadToolbar.DropDownListMessage = inValue;
-            ConnectToTargetCallback(inValue);
+            ConnectToTargetCallback(_targetProfiles[inValue]);
         }
 
         private void PropertiesCallback(object sender, EventArgs e)
@@ -248,16 +260,17 @@ namespace Trik.Upload_Extension
             }
         }
 
-        private async void ConnectToTargetCallback(string ip)
+        private async void ConnectToTargetCallback(TargetProfile profile)
         {
             _uploadToolbar.Upload.Enabled = false;
             _uploadToolbar.RunProgram.Enabled = false;
             IsConnecting = true;
-            VS.WindowPane.SetName("TRIK Controller " + ip);
-            VS.WindowPane.WriteLine("Connecting to " + ip);
+            var ipAddress = profile.IpAddress;
+            VS.WindowPane.SetName("TRIK Controller " + ipAddress);
+            VS.WindowPane.WriteLine("Connecting to " + ipAddress);
             const int dueTime = 11000; //Usual time is taken for connection with a controller
-            VS.Statusbar.Progress(dueTime, "Connecting to " + ip);
-            Uploader = new Uploader(ip) {OutputAction = VS.WindowPane.WriteLine};
+            VS.Statusbar.Progress(dueTime, "Connecting to " + ipAddress);
+            Uploader = new Uploader(profile) {OutputAction = VS.WindowPane.Write};
             await Task.Run(async () =>
             {
                 try
@@ -265,7 +278,7 @@ namespace Trik.Upload_Extension
                     Uploader.Connect();
                     await VS.Statusbar.StopProgressAsync();
                     VS.Statusbar.SetText("Connected!");
-                    VS.WindowPane.WriteLine("Connected to " + ip);
+                    VS.WindowPane.WriteLine("Connected to " + ipAddress);
                     _uploadToolbar.Upload.Enabled = true;
                     _uploadToolbar.Properties.Enabled = true;
                 }
