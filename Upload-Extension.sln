@@ -5,7 +5,7 @@ VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upload-Extension", "Upload-Extension\Upload-Extension.csproj", "{B89F1BFA-FD51-47B7-A3D7-DC4D3828DA27}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upload-Extension_IntegrationTests", "Upload-Extension\Upload-Extension_IntegrationTests\Upload-Extension_IntegrationTests.csproj", "{F62B5F97-CED2-4C46-B5CC-4BAE9B866E3C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upload-Extension_IntegrationTests", "Upload-Extension_IntegrationTests\Upload-Extension_IntegrationTests.csproj", "{F62B5F97-CED2-4C46-B5CC-4BAE9B866E3C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{ED7726BF-8911-469B-9D1E-76ACF8183B71}"
 	ProjectSection(SolutionItems) = preProject
@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		UnitTests.testsettings = UnitTests.testsettings
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upload-Extension_UnitTests", "Upload-Extension\Upload-Extension_UnitTests\Upload-Extension_UnitTests.csproj", "{7FA6E512-0280-4552-8B58-920463680E82}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upload-Extension_UnitTests", "Upload-Extension_UnitTests\Upload-Extension_UnitTests.csproj", "{7FA6E512-0280-4552-8B58-920463680E82}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

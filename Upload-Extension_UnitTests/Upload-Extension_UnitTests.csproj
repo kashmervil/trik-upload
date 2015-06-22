@@ -71,7 +71,7 @@
     <None Include="Key.snk" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Upload-Extension.csproj">
+    <ProjectReference Include="..\Upload-Extension\Upload-Extension.csproj">
       <Project>{B89F1BFA-FD51-47B7-A3D7-DC4D3828DA27}</Project>
       <Name>Upload-Extension</Name>
     </ProjectReference>
