@@ -1,6 +1,6 @@
 using System.ComponentModel.Design;
 
-namespace UploadExtension
+namespace UploadExtension.IDE
 {
     internal class UploadToolbar
     {

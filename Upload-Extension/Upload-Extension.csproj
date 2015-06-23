@@ -129,12 +129,15 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IDE.cs" />
+    <Compile Include="IDE\IStatusbar.cs" />
+    <Compile Include="IDE\IWindowPane.cs" />
+    <Compile Include="IDE\VisualStudio\VisualStudioIDE.cs" />
     <Compile Include="Guids.cs" />
-    <Compile Include="TargetSettingsWindow.xaml.cs">
+    <Compile Include="IDE\IDE.cs" />
+    <Compile Include="UI\TargetSettingsWindow.xaml.cs">
       <DependentUpon>TargetSettingsWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="PropertiesWindow.xaml.cs">
+    <Compile Include="UI\PropertiesWindow.xaml.cs">
       <DependentUpon>PropertiesWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Resources.Designer.cs">
@@ -144,9 +147,9 @@
     </Compile>
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="SolutionManager.cs" />
-    <Compile Include="StatusbarImpl.cs" />
+    <Compile Include="IDE\VisualStudio\VsStatusbar.cs" />
     <Compile Include="TargetProfile.cs" />
-    <Compile Include="TargetsWindow.xaml.cs">
+    <Compile Include="UI\TargetsWindow.xaml.cs">
       <DependentUpon>TargetsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Upload-ExtensionPackage.cs" />
@@ -154,8 +157,8 @@
     <Compile Include="PkgCmdID.cs" />
     <Compile Include="Uploader.cs" />
     <Compile Include="UploadProjectInfo.cs" />
-    <Compile Include="UploadToolbar.cs" />
-    <Compile Include="WindowPaneImpl.cs" />
+    <Compile Include="IDE\UploadToolbar.cs" />
+    <Compile Include="IDE\VisualStudio\VsWindowPane.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">
@@ -196,15 +199,15 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="TargetSettingsWindow.xaml">
+    <Page Include="UI\TargetSettingsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="PropertiesWindow.xaml">
+    <Page Include="UI\PropertiesWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="TargetsWindow.xaml">
+    <Page Include="UI\TargetsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -1,34 +1,35 @@
 using Microsoft.VisualStudio.Shell.Interop;
+using UploadExtension.IDE;
 
 namespace UploadExtension
 {
-    internal class WindowPaneImpl
+    internal class VsWindowPane : IWindowPane
     {
         private readonly IVsOutputWindowPane _pane;
 
-        internal WindowPaneImpl(IVsOutputWindowPane pane)
+        internal VsWindowPane(IVsOutputWindowPane pane)
         {
             _pane = pane;
         }
 
-        internal void WriteLine(string message)
+        public void WriteLine(string message)
         {
             _pane.Activate();
             _pane.OutputStringThreadSafe(message + "\n");
         }
 
-        internal void Write(string message)
+        public void Write(string message)
         {
             _pane.Activate();
             _pane.OutputStringThreadSafe(message);
         }
 
-        internal void Activate()
+        public void Activate()
         {
             _pane.Activate();
         }
 
-        internal void SetName(string text)
+        public void SetName(string text)
         {
             _pane.SetName(text);
         }

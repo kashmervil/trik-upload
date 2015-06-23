@@ -9,6 +9,8 @@ using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using UploadExtension.IDE;
+using UploadExtension.IDE.VisualStudio;
 using Task = System.Threading.Tasks.Task;
 
 namespace UploadExtension
@@ -30,7 +32,7 @@ namespace UploadExtension
 
         private UploadToolbar _uploadToolbar;
         private Uploader Uploader { get; set; }
-        private IDE VS { get; set; }
+        private VisualStudioIDE VS { get; set; }
         private SolutionManager SolutionManager { get; set; }
         private bool IsConnecting { get; set; }
         /////////////////////////////////////////////////////////////////////////////
@@ -83,7 +85,7 @@ namespace UploadExtension
             var statusbar = GetService(typeof (SVsStatusbar)) as IVsStatusbar;
             var pane = GetService(typeof (SVsGeneralOutputWindowPane)) as IVsOutputWindowPane;
             if (statusbar == null || pane == null) return;
-            VS = new IDE(statusbar, pane);
+            VS = new VisualStudioIDE(statusbar, pane);
 
             VS.WindowPane.SetName("Controller");
         }

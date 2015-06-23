@@ -3,17 +3,18 @@ using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Shell.Interop;
+using UploadExtension.IDE;
 
 namespace UploadExtension
 {
-    internal class StatusbarImpl : IDisposable
+    internal class VsStatusbar : IStatusbar
     {
         private readonly AutoResetEvent _resetEvent = new AutoResetEvent(false);
         private readonly IVsStatusbar _statusbar;
         private uint _statusbarCookie;
         private BackgroundWorker _worker;
 
-        internal StatusbarImpl(IVsStatusbar statusbar)
+        internal VsStatusbar(IVsStatusbar statusbar)
         {
             _statusbar = statusbar;
         }
@@ -26,12 +27,12 @@ namespace UploadExtension
             _worker.Dispose();
         }
 
-        internal void SetText(string text)
+        public void SetText(string text)
         {
             _statusbar.SetText(text);
         }
 
-        internal void Progress(int period, string text)
+        public void Progress(int period, string text)
         {
             if (InProgress) return;
             InProgress = true;
@@ -59,7 +60,7 @@ namespace UploadExtension
             _worker.RunWorkerAsync();
         }
 
-        internal async Task<bool> StopProgressAsync()
+        public async Task<bool> StopProgressAsync()
         {
             if (!InProgress) return true;
             _worker.RunWorkerCompleted += (sender, args) =>

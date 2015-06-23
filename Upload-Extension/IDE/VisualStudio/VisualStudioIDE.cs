@@ -6,17 +6,17 @@ using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace UploadExtension
+namespace UploadExtension.IDE.VisualStudio
 {
-    internal class IDE : IDisposable
+    internal class VisualStudioIDE : IDisposable, IDE<VsStatusbar, VsWindowPane>
     {
-        public StatusbarImpl Statusbar;
-        public WindowPaneImpl WindowPane;
+        public VsStatusbar Statusbar { get; set; }
+        public VsWindowPane WindowPane { get; set; }
 
-        public IDE(IVsStatusbar statusbar, IVsOutputWindowPane pane)
+        public VisualStudioIDE(IVsStatusbar statusbar, IVsOutputWindowPane pane)
         {
-            Statusbar = new StatusbarImpl(statusbar);
-            WindowPane = new WindowPaneImpl(pane);
+            Statusbar = new VsStatusbar(statusbar);
+            WindowPane = new VsWindowPane(pane);
         }
 
         public void Dispose()
