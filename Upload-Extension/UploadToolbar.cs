@@ -1,6 +1,6 @@
 using System.ComponentModel.Design;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     internal class UploadToolbar
     {

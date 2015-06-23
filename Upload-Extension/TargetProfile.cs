@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Security;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     internal class TargetProfile
     {

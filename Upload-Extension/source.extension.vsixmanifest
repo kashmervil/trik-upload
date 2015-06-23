@@ -3,13 +3,12 @@
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"
                  xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="cc3f99c8-ffac-4cf9-8b9d-71a68baf8fbe" Version="0.3.0" Language="en-US" Publisher="TRIK" />
+    <Identity Id="cc3f99c8-ffac-4cf9-8b9d-71a68baf8fbe" Version="0.3.0" Language="en-US" Publisher="kashmervil" />
     <DisplayName>TRIK-Upload</DisplayName>
-    <Description xml:space="preserve">Visual Studio extension for Automatic file uploading to TRIK-Controller  http://blog.trikset.com/</Description>
+    <Description xml:space="preserve">TRIK-Upload is a Visual Studio extension for remote linux-computers communication. It's designed for using with controllers like Raspberry Pi and TRIK. TRIK-Upload handles uploading, launching, and closing of your VS project.  It also gives interactive output from you remote-running app directly to VS output pane. All connection routine is made through ssh, so you can use TRIK-Upload on any machine with ssh-server and mono.</Description>
     <MoreInfo>https://github.com/kashmervil/Upload-Extension</MoreInfo>
-    <ReleaseNotes>Interactive Output to window pane is added</ReleaseNotes>
     <Icon>Resources\Package.ico</Icon>
-    <Tags>SSH, SCP, TRIK </Tags>
+    <Tags>SSH, SCP, TRIK, Remote, Raspberry Pi, IoT, Uploading, mono</Tags>
   </Metadata>
   <Installation>
     <InstallationTarget Version="[11.0,15.0)" Id="Microsoft.VisualStudio.Pro" />
@@ -19,7 +18,8 @@
   </Installation>
   <Dependencies>
     <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
-    <Dependency Id="Microsoft.VisualStudio.MPF" DisplayName="Visual Studio MPF" d:Source="Installed" Version="[11.0,15.0)" />
+    <Dependency Id="Microsoft.VisualStudio.MPF" DisplayName="Visual Studio MPF" d:Source="Installed"
+                Version="[11.0,15.0)" />
   </Dependencies>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%"

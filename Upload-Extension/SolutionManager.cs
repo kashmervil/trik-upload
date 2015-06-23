@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     internal class SolutionManager
     {
@@ -108,7 +108,7 @@ namespace Trik.Upload_Extension
 
         public void StopProgram()
         {
-            _uploader.SendCommandToStream(Encoding.ASCII.GetString(new byte[]{3})); // Ctrl+C code
+            _uploader.SendCommandToStream(Encoding.ASCII.GetString(new byte[] {3})); // Ctrl+C code
         }
     }
 }

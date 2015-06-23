@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     public class UploadProjectInfo
     {
@@ -12,24 +12,6 @@ namespace Trik.Upload_Extension
             ProjectFilePath = projectFilePath;
             Initialize();
             UploadedFiles = new Dictionary<string, DateTime>();
-        }
-
-        public void Initialize()
-        {
-            ProjectName = Path.GetFileNameWithoutExtension(ProjectFilePath);
-            if (ProjectName == null)
-                throw new InvalidOperationException("Unable to find a project file: " + ProjectFilePath);
-            ProjectLocalBuildPath = Path.GetDirectoryName(ProjectFilePath) + @"\bin\Release\";
-            //Invalid characters replacing with escape characters/ quotes (e.g project with spaces-and-dashes ==> "project with spaces_and_dashes") 
-            //which is a valid representation for path/name with special chars in linux 
-            var properName = "\"" + ProjectName.Replace("-", "_") + "\"";
-            RemoteScriptName = @"/home/root/trik/scripts/trik-sharp/" + properName;
-            FilesUploadPath = @"/home/root/trik-sharp/uploads/" + properName + "/";
-            var executables =
-                Directory.GetFiles(ProjectLocalBuildPath)
-                    .Where(x => x.EndsWith(".exe") && !x.EndsWith("vshost.exe"))
-                    .ToArray();
-            ExecutableFileName = (executables.Length == 1) ? Path.GetFileName(executables[0]) : properName + ".exe";
         }
 
         public string ProjectName { get; private set; }
@@ -51,6 +33,24 @@ namespace Trik.Upload_Extension
                     + "; chmod +x " + RemoteScriptName;
                 return text;
             }
+        }
+
+        public void Initialize()
+        {
+            ProjectName = Path.GetFileNameWithoutExtension(ProjectFilePath);
+            if (ProjectName == null)
+                throw new InvalidOperationException("Unable to find a project file: " + ProjectFilePath);
+            ProjectLocalBuildPath = Path.GetDirectoryName(ProjectFilePath) + @"\bin\Release\";
+            //Invalid characters replacing with escape characters/ quotes (e.g project with spaces-and-dashes ==> "project with spaces_and_dashes") 
+            //which is a valid representation for path/name with special chars in linux 
+            var properName = "\"" + ProjectName.Replace("-", "_") + "\"";
+            RemoteScriptName = @"/home/root/trik/scripts/trik-sharp/" + properName;
+            FilesUploadPath = @"/home/root/trik-sharp/uploads/" + properName + "/";
+            var executables =
+                Directory.GetFiles(ProjectLocalBuildPath)
+                    .Where(x => x.EndsWith(".exe") && !x.EndsWith("vshost.exe"))
+                    .ToArray();
+            ExecutableFileName = (executables.Length == 1) ? Path.GetFileName(executables[0]) : properName + ".exe";
         }
     }
 }

@@ -11,7 +11,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Task = System.Threading.Tasks.Task;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     [PackageRegistration(UseManagedResourcesOnly = true)]
     [InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)]
@@ -19,23 +19,20 @@ namespace Trik.Upload_Extension
     [Guid(GuidList.GuidUploadExtensionPkgString)]
     public sealed class UploadExtensionPackage : Package
     {
-        private Uploader Uploader { get; set; }
-
         private readonly Dictionary<string, TargetProfile> _targetProfiles = new Dictionary<string, TargetProfile>
         {
-            
 #if DEBUG                
                 {"10.0.40.42", new TargetProfile(IPAddress.Parse("10.0.40.42"))}
 #else          
-                {"192.168.1.1", new TargetProfile(IPAddress.Parse("192.168.1.1"))}        
-#endif               
+            {"192.168.1.1", new TargetProfile(IPAddress.Parse("192.168.1.1"))}        
+#endif
         };
 
         private UploadToolbar _uploadToolbar;
+        private Uploader Uploader { get; set; }
         private IDE VS { get; set; }
         private SolutionManager SolutionManager { get; set; }
         private bool IsConnecting { get; set; }
-
         /////////////////////////////////////////////////////////////////////////////
         // Overridden Package Implementation
 
@@ -51,8 +48,8 @@ namespace Trik.Upload_Extension
             //Toolbar initialization
             _uploadToolbar = new UploadToolbar
             {
-                DropDownListMessage = "Select TRIK address",
-                OptionsMessage = "*Manage TRIK addresses"
+                DropDownListMessage = "Select Controller",
+                OptionsMessage = "*Manage Controllers"
             };
 
 
@@ -88,7 +85,7 @@ namespace Trik.Upload_Extension
             if (statusbar == null || pane == null) return;
             VS = new IDE(statusbar, pane);
 
-            VS.WindowPane.SetName("TRIK-Controller");
+            VS.WindowPane.SetName("Controller");
         }
 
         #endregion
@@ -171,18 +168,17 @@ namespace Trik.Upload_Extension
 
         private void StopProgramCallback(object sender, EventArgs e)
         {
-            VS.WindowPane.WriteLine("========== Killing TRIK application ==========\n");
+            VS.WindowPane.WriteLine(@"\n========== Killing application ==========\n");
             VS.Statusbar.SetText("Killing Application");
             SolutionManager.StopProgram();
             _uploadToolbar.StopProgram.Enabled = false;
         }
 
-
         private void RunProgramCallback(object sender, EventArgs e)
         {
-            VS.WindowPane.WriteLine("========== Starting an Application on TRIK ==========\n");
+            VS.WindowPane.WriteLine("========== Starting an Application ==========\n");
             _uploadToolbar.StopProgram.Enabled = true;
-            VS.Statusbar.SetText("Running application on TRIK. See output pane for more information");
+            VS.Statusbar.SetText("Running application on controller. See output pane for more information");
             SolutionManager.RunProgram();
         }
 
@@ -209,7 +205,7 @@ namespace Trik.Upload_Extension
                     VS.GetSolutionProjects(solution.Projects), Uploader);
                 SolutionManager.ActiveProject = SolutionManager.Projects[0];
             }
-            
+
             switch (solution.SolutionBuild.BuildState)
             {
                 case vsBuildState.vsBuildStateNotStarted:
@@ -230,12 +226,11 @@ namespace Trik.Upload_Extension
             await VS.Statusbar.StopProgressAsync();
             if (error.Length != 0)
             {
-
                 VS.WindowPane.WriteLine("\nNetwork error is occured: " + error);
                 await Reconnect();
                 if (Uploader != null)
                 {
-                    VS.WindowPane.Write("Resume ");                    
+                    VS.WindowPane.Write("Resume ");
                     UploadToTargetCallback(sender, e);
                 }
             }
@@ -243,7 +238,8 @@ namespace Trik.Upload_Extension
             {
                 if (activeProject.UploadedFiles.Count == 0 && uploadedFiles == 0)
                 {
-                    var expandedMessage = activeProject.ProjectName + "'s Release folder is empty, the same as corresponding remote folder.\n";
+                    var expandedMessage = activeProject.ProjectName +
+                                          "'s Release folder is empty, the same as corresponding remote folder.\n";
                     const string shortMessage = "Please Build Solution before uploading!";
                     VS.Statusbar.SetText(shortMessage);
                     VS.WindowPane.WriteLine(expandedMessage + shortMessage);
@@ -266,7 +262,7 @@ namespace Trik.Upload_Extension
             _uploadToolbar.RunProgram.Enabled = false;
             IsConnecting = true;
             var ipAddress = profile.IpAddress;
-            VS.WindowPane.SetName("TRIK Controller " + ipAddress);
+            VS.WindowPane.SetName("Controller " + profile.Login + "@" + ipAddress);
             VS.WindowPane.WriteLine("Connecting to " + ipAddress);
             const int dueTime = 11000; //Usual time is taken for connection with a controller
             VS.Statusbar.Progress(dueTime, "Connecting to " + ipAddress);
@@ -285,7 +281,8 @@ namespace Trik.Upload_Extension
                 catch (Exception exeption)
                 {
                     Task.WaitAny(VS.Statusbar.StopProgressAsync());
-                    VS.Statusbar.SetText("Can't connect to TRIK. Check connection and try again. See Output pane for details");
+                    VS.Statusbar.SetText(
+                        "Can't connect to Controller. Check connection and try again. See Output pane for details");
                     VS.WindowPane.WriteLine(exeption.Message);
                     Uploader = null;
                 }
@@ -309,7 +306,7 @@ namespace Trik.Upload_Extension
             var flag = true;
             if (!connected)
             {
-                message = "Can't connect to TRIK. Check connection and try again";
+                message = "Can't connect to controller. Check connection and try again";
                 flag = false;
                 Uploader = null;
             }

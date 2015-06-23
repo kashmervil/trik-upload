@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Net;
 using System.Windows;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     /// <summary>
     ///     Interaction logic for TargetSettingsWindow.xaml

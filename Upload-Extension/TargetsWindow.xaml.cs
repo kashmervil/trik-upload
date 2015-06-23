@@ -2,7 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     /// <summary>
     ///     Interaction logic for TargetsWindow.xaml
@@ -28,9 +28,8 @@ namespace Trik.Upload_Extension
             if (itemToRemove != null)
             {
                 targets.Remove(itemToRemove);
-                ((ObservableCollection<string>)ListBoxTargets.ItemsSource).Remove(itemToRemove);
+                ((ObservableCollection<string>) ListBoxTargets.ItemsSource).Remove(itemToRemove);
             }
-
         }
     }
 }

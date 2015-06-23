@@ -49,7 +49,7 @@ namespace Upload_Extension_IntegrationTests
 
                 //Validate package load
                 IVsPackage package;
-                Guid packageGuid = new Guid(Trik.Upload_Extension.GuidList.GuidUploadExtensionPkgString);
+                Guid packageGuid = new Guid(UploadExtension.GuidList.GuidUploadExtensionPkgString);
                 Assert.IsTrue(0 == shellService.LoadPackage(ref packageGuid, out package));
                 Assert.IsNotNull(package, "Package failed to load");
 

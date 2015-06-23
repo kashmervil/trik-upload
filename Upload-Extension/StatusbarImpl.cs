@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     internal class StatusbarImpl : IDisposable
     {
@@ -12,12 +12,13 @@ namespace Trik.Upload_Extension
         private readonly IVsStatusbar _statusbar;
         private uint _statusbarCookie;
         private BackgroundWorker _worker;
-        public bool InProgress { get; private set; }
 
         internal StatusbarImpl(IVsStatusbar statusbar)
         {
             _statusbar = statusbar;
         }
+
+        public bool InProgress { get; private set; }
 
         public void Dispose()
         {
@@ -61,8 +62,11 @@ namespace Trik.Upload_Extension
         internal async Task<bool> StopProgressAsync()
         {
             if (!InProgress) return true;
-            _worker.RunWorkerCompleted += (sender, args) => { _statusbar.Progress(ref _statusbarCookie, 1, "", 0, 0);
-                                                              InProgress = false; };
+            _worker.RunWorkerCompleted += (sender, args) =>
+            {
+                _statusbar.Progress(ref _statusbarCookie, 1, "", 0, 0);
+                InProgress = false;
+            };
             _worker.CancelAsync();
             return await Task.Run(() => _resetEvent.WaitOne());
         }

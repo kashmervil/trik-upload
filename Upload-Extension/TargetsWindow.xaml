@@ -1,11 +1,12 @@
-﻿<Window x:Class="Trik.Upload_Extension.TargetsWindow"
+﻿<Window x:Class="UploadExtension.TargetsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="TRIK addresses" Height="135" Width="300" WindowStartupLocation="CenterScreen">
+        Title="Manage Profiles" Height="135" Width="300" WindowStartupLocation="CenterScreen">
     <DockPanel Margin="10">
         <StackPanel DockPanel.Dock="Right" Margin="10,0,0,0">
-            <Button Name="AddTargetButton" Click="AddTargetButton_OnClick" Height="21">Add TRIK</Button>
-            <Button x:Name="DeleteTargetButton" Click="DeleteTargetButton_OnClick" Content="Delete TRIK" Margin="0,10" Height="21" />
+            <Button x:Name="AddTargetButton" Click="AddTargetButton_OnClick" Height="21" Content="Add Controller" />
+            <Button x:Name="DeleteTargetButton" Click="DeleteTargetButton_OnClick" Content="Delete Controller"
+                    Margin="0,10" Height="21" />
         </StackPanel>
         <ListBox Name="ListBoxTargets" />
     </DockPanel>

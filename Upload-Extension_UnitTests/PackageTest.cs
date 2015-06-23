@@ -16,7 +16,7 @@ using System.Reflection;
 using Microsoft.VsSDK.UnitTestLibrary;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Trik.Upload_Extension;
+using UploadExtension;
 
 namespace Upload_Extension_UnitTests
 {

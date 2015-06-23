@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     internal static class GuidList
     {

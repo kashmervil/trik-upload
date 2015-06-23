@@ -6,7 +6,7 @@ using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     internal class IDE : IDisposable
     {

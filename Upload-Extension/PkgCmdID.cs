@@ -1,7 +1,7 @@
 ﻿// PkgCmdID.cs
 // MUST match PkgCmdID.h
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     internal static class PkgCmdIDList
     {

@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     internal class WindowPaneImpl
     {
@@ -16,6 +16,7 @@ namespace Trik.Upload_Extension
             _pane.Activate();
             _pane.OutputStringThreadSafe(message + "\n");
         }
+
         internal void Write(string message)
         {
             _pane.Activate();

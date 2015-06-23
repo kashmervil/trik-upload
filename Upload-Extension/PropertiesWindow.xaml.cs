@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Windows;
 
-namespace Trik.Upload_Extension
+namespace UploadExtension
 {
     /// <summary>
     ///     Interaction logic for PropertiesWindow.xaml
