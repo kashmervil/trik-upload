@@ -1,7 +1,6 @@
 using Microsoft.VisualStudio.Shell.Interop;
-using UploadExtension.IDE;
 
-namespace UploadExtension
+namespace UploadExtension.IDE.VisualStudio
 {
     internal class VsWindowPane : IWindowPane
     {
@@ -32,6 +31,11 @@ namespace UploadExtension
         public void SetName(string text)
         {
             _pane.SetName(text);
+        }
+
+        public void Clear()
+        {
+            _pane.Clear();
         }
     }
 }

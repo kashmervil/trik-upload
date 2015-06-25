@@ -1,11 +1,9 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Shell.Interop;
-using UploadExtension.IDE;
 
-namespace UploadExtension
+namespace UploadExtension.IDE.VisualStudio
 {
     internal class VsStatusbar : IStatusbar
     {

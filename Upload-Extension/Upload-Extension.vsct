@@ -86,7 +86,8 @@
         <Parent guid="guidUpload_ExtensionCmdSet" id="ToolbarGroup" />
         <Icon guid="guidImages" id="properties" />
         <Strings>
-          <ButtonText>Properties...</ButtonText>
+          <CommandName>Properties...</CommandName>
+          <ButtonText>Properties</ButtonText>
         </Strings>
       </Button>
     </Buttons>
@@ -120,8 +121,8 @@
             type="Toolbar">
         <CommandFlag>DefaultDocked</CommandFlag>
         <Strings>
-          <ButtonText>Upload</ButtonText>
-          <CommandName>Upload</CommandName>
+          <ButtonText>Trik-Upload</ButtonText>
+          <CommandName>Trik-Upload</CommandName>
         </Strings>
       </Menu>
     </Menus>

@@ -24,7 +24,7 @@ namespace UploadExtension
         private readonly Dictionary<string, TargetProfile> _targetProfiles = new Dictionary<string, TargetProfile>
         {
 #if DEBUG                
-                {"10.0.40.42", new TargetProfile(IPAddress.Parse("10.0.40.42"))}
+            {"10.0.40.42", new TargetProfile(IPAddress.Parse("10.0.40.42"))}
 #else          
             {"192.168.1.1", new TargetProfile(IPAddress.Parse("192.168.1.1"))}        
 #endif
@@ -87,7 +87,10 @@ namespace UploadExtension
             if (statusbar == null || pane == null) return;
             VS = new VisualStudioIDE(statusbar, pane);
 
-            VS.WindowPane.SetName("Controller");
+            VS.WindowPane.SetName("TRIK-Upload");
+            VS.WindowPane.Clear();
+            VS.WindowPane.WriteLine(
+                "Welcome to TRIK-Upload.\nConnect to your Raspberry Pi or TRIK.\nSelect Project to work with and have fun");
         }
 
         #endregion
@@ -161,7 +164,9 @@ namespace UploadExtension
                 throw new Exception("Properties window did not work properly");
             var message = "Active project changed to " + SolutionManager.ActiveProject.ProjectName;
             VS.Statusbar.SetText(message);
-            VS.WindowPane.WriteLine(message);
+            VS.WindowPane.SetName(String.Format("TRIK-Upload {0}@{1} ({2})", Uploader.UserName, Uploader.Ip,
+                SolutionManager.ActiveProject.ProjectName));
+            VS.WindowPane.WriteLine("\n" + message);
             if (SolutionManager.ActiveProject.UploadedFiles.Count == 0)
             {
                 _uploadToolbar.RunProgram.Enabled = false;
@@ -170,7 +175,7 @@ namespace UploadExtension
 
         private void StopProgramCallback(object sender, EventArgs e)
         {
-            VS.WindowPane.WriteLine(@"\n========== Killing application ==========\n");
+            VS.WindowPane.WriteLine("\n========== Killing application ==========\n");
             VS.Statusbar.SetText("Killing Application");
             SolutionManager.StopProgram();
             _uploadToolbar.StopProgram.Enabled = false;
@@ -178,7 +183,7 @@ namespace UploadExtension
 
         private void RunProgramCallback(object sender, EventArgs e)
         {
-            VS.WindowPane.WriteLine("========== Starting an Application ==========\n");
+            VS.WindowPane.WriteLine("\n========== Starting an Application ==========\n");
             _uploadToolbar.StopProgram.Enabled = true;
             VS.Statusbar.SetText("Running application on controller. See output pane for more information");
             SolutionManager.RunProgram();
@@ -206,6 +211,8 @@ namespace UploadExtension
                 SolutionManager = new SolutionManager(solution.FullName,
                     VS.GetSolutionProjects(solution.Projects), Uploader);
                 SolutionManager.ActiveProject = SolutionManager.Projects[0];
+                VS.WindowPane.SetName(String.Format("TRIK-Upload {0}@{1} ({2})", Uploader.UserName, Uploader.Ip,
+                    SolutionManager.ActiveProject.ProjectName));
             }
 
             switch (solution.SolutionBuild.BuildState)
@@ -264,8 +271,9 @@ namespace UploadExtension
             _uploadToolbar.RunProgram.Enabled = false;
             IsConnecting = true;
             var ipAddress = profile.IpAddress;
-            VS.WindowPane.SetName("Controller " + profile.Login + "@" + ipAddress);
-            VS.WindowPane.WriteLine("Connecting to " + ipAddress);
+            VS.WindowPane.SetName("TRIK-Upload " + profile.Login + "@" + ipAddress);
+            VS.WindowPane.Clear();
+            VS.WindowPane.WriteLine("Connecting to " + ipAddress + "...");
             const int dueTime = 11000; //Usual time is taken for connection with a controller
             VS.Statusbar.Progress(dueTime, "Connecting to " + ipAddress);
             Uploader = new Uploader(profile) {OutputAction = VS.WindowPane.Write};

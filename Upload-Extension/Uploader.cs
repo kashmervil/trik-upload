@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
@@ -26,7 +27,7 @@ namespace UploadExtension
         {
             Ip = p.IpAddress.ToString();
             UserName = p.Login;
-            var password = p.Pass.ToString(); //TODO: Find better ssh library and remove vulnerability breach 
+            var password = p.Pass.ToString(); //TODO: remove vulnerability breach 
             _scpClient = new ScpClient(Ip, UserName, password);
             _sshClient = new SshClient(Ip, UserName, password);
         }
@@ -73,8 +74,19 @@ namespace UploadExtension
 
         private void KeepAlive(object sender, ElapsedEventArgs e)
         {
-            _scpClient.SendKeepAlive();
-            _sshClient.SendKeepAlive();
+
+            try
+            {
+                _scpClient.SendKeepAlive();
+                _sshClient.SendKeepAlive();
+            }
+            catch (Exception exception)
+            {
+#if DEBUG
+      _logger(exception.Message); //TODO: add interactive reconnection routine
+#endif
+
+            }
         }
 
         public async Task<bool> ReconnectAsync()
@@ -89,7 +101,7 @@ namespace UploadExtension
                     _sshClient.Disconnect();
                     _sshClient.Connect();
                 }
-                catch (SshConnectionException)
+                catch (SocketException)
                 {
                     return false;
                 }
