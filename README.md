@@ -1,4 +1,4 @@
-Upload-Extension
+TRIK-Upload
 ==========
 
 An extension for VS2012/VS2013/VS2015 for deploying .NET projects on controllers or remote linux computers.
@@ -29,6 +29,8 @@ Reducing these differences is the main task for __TRIK-Upload__. It's fully inte
 __TRIK-Upload__ also has set of clumsy hotkeys for uploading/running/stopping/configuring your project (it's actually hard to find free consistent key combinations in a big IDE). 
 
 ## Notes
+For installation, using, and futher documentation see [project-wiki](https://github.com/kashmervil/Upload-Extension/wiki)
+
 
 The plugin is still in beta and needs features, email me for getting the roadmap.
 Even though __TRIK-Upload__ gives me a huge productivity gain with my another project [trik-sharp](http://www.github.com/kashmervil/trik-sharp) which stands for .NET library for robotics programming. 
