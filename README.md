@@ -14,6 +14,9 @@ The plugin was designed to work with controllers like Raspberry Pi and TRIK. But
 + Interactive remote stdout and stderr streams in the Visual Studio's output pane.
 + Start script generation
 
+![example](https://raw.githubusercontent.com/wiki/kashmervil/trik-upload/media/result-small.gif)
+See [Wiki](https://github.com/kashmervil/trik-upload/wiki) for more screenshots
+
 ##Description
 Nowadays it's very popular to use modern languages and language platforms for robotics/embedded programming. Following that path allows you to adopt libraries and tools developed for the language itself (making embedded devices much more comfortable to work with). 
 
@@ -42,5 +45,5 @@ Even though __TRIK-Upload__ gives me a huge productivity gain with my another pr
 
 ## Installing
 
-__TRIK-Upload__ can be installed with VS > Tools > Extensions and updates > Online
+__TRIK-Upload__ can be installed from Visual Studio extensions gallery
 
