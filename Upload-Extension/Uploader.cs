@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using System.Timers;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using System.Security;
+using System.Runtime.InteropServices;
 
 namespace UploadExtension
 {
@@ -27,7 +29,7 @@ namespace UploadExtension
         {
             Ip = p.IpAddress.ToString();
             UserName = p.Login;
-            var password = p.Pass.ToString(); //TODO: remove vulnerability breach 
+            var password = ConvertToUnsecureString(p.Pass); //TODO: remove vulnerability breach 
             _scpClient = new ScpClient(Ip, UserName, password);
             _sshClient = new SshClient(Ip, UserName, password);
         }
@@ -156,6 +158,23 @@ namespace UploadExtension
             foreach (var s in fileNames)
             {
                 _logger("Removing " + s + " from target");
+            }
+        }
+
+        public string ConvertToUnsecureString(SecureString securePassword)
+        {
+            if (securePassword == null)
+                throw new ArgumentNullException("securePassword");
+
+            IntPtr unmanagedString = IntPtr.Zero;
+            try
+            {
+                unmanagedString = Marshal.SecureStringToGlobalAllocUnicode(securePassword);
+                return Marshal.PtrToStringUni(unmanagedString);
+            }
+            finally
+            {
+                Marshal.ZeroFreeGlobalAllocUnicode(unmanagedString);
             }
         }
     }
